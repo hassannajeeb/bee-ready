@@ -1,0 +1,1973 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0;font:14px/1.4 system-ui,sans-serif;background:#fafaf9}img{max-width:100%}[hidden]{display:none!important}</style></head><body><title>Bee Ready</title>
+<meta name="description" content="Practice and mock Pakistan Spelling Bee rounds for Grade 3 and Grade 5.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Andika:wght@400;700&family=Atkinson+Hyperlegible:wght@400;700&family=Fredoka:wght@500;600;700&display=swap">
+<style>
+/* Layout: one centred column (max 760px); a top bar with speller switcher, then one screen at a time. Letters always sit on honey hex tiles. */
+:root{
+  --ground:#F1F5EF; --surface:#FFFFFF; --sunk:#E6EDE5; --ink:#11261B; --muted:#56695D; --line:#D3DDD4;
+  --accent:#0B5D3B; --accent-ink:#FFFFFF; --honey:#F4B41A; --honey-ink:#3A2700; --honey-soft:#FCEBBE;
+  --good:#1D7F47; --good-soft:#DDF1E3; --bad:#B63A24; --bad-soft:#F8E0DA; --warn:#9A6A00;
+  --f-display:"Fredoka","Baloo 2","Trebuchet MS",system-ui,sans-serif;
+  --f-body:"Atkinson Hyperlegible","Segoe UI",system-ui,sans-serif;
+  --f-letter:"Andika","Atkinson Hyperlegible","Comic Sans MS",system-ui,sans-serif;
+  --r:14px;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    color-scheme:dark;
+    --ground:#0D1912; --surface:#14241B; --sunk:#1B2E23; --ink:#E7F0E9; --muted:#9DB2A4; --line:#2A3E32;
+    --accent:#45C487; --accent-ink:#06170E; --honey:#F5BE3A; --honey-ink:#2B1D00; --honey-soft:#3A2F12;
+    --good:#5AD08C; --good-soft:#163524; --bad:#FF8A73; --bad-soft:#3A1C16; --warn:#F2C35B;
+  }
+}
+:root[data-theme="dark"]{
+  color-scheme:dark;
+  --ground:#0D1912; --surface:#14241B; --sunk:#1B2E23; --ink:#E7F0E9; --muted:#9DB2A4; --line:#2A3E32;
+  --accent:#45C487; --accent-ink:#06170E; --honey:#F5BE3A; --honey-ink:#2B1D00; --honey-soft:#3A2F12;
+  --good:#5AD08C; --good-soft:#163524; --bad:#FF8A73; --bad-soft:#3A1C16; --warn:#F2C35B;
+}
+*{box-sizing:border-box}
+body{background:var(--ground);color:var(--ink);font-family:var(--f-body);font-size:17px;line-height:1.5;padding-inline:16px;padding-block:0 48px}
+.wrap{max-width:760px;margin:0 auto;display:flex;flex-direction:column;gap:22px}
+h1,h2,h3{font-family:var(--f-display);font-weight:600;line-height:1.15;margin:0;text-wrap:balance}
+h1{font-size:2.1rem} h2{font-size:1.5rem} h3{font-size:1.15rem}
+p{margin:0}
+.muted{color:var(--muted)}
+.eyebrow{font-size:.78rem;letter-spacing:.09em;text-transform:uppercase;color:var(--muted);font-weight:700}
+a{color:var(--accent)}
+button{font:inherit;color:inherit;cursor:pointer}
+:focus-visible{outline:3px solid var(--honey);outline-offset:2px}
+
+/* top bar */
+.bar{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--ground);display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;padding-block:14px;border-bottom:1px solid var(--line);margin-bottom:6px}
+.brand{display:flex;align-items:center;gap:10px;font-family:var(--f-display);font-weight:700;font-size:1.3rem;background:none;border:0;padding:0}
+.brand .hex{width:30px;height:34px;font-size:1rem}
+.who{display:flex;gap:6px;flex-wrap:wrap}
+.chip{border:1.5px solid var(--line);background:var(--surface);border-radius:999px;padding:6px 14px;font-weight:700;font-size:.92rem}
+.chip[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+
+/* hex letter tiles */
+.tiles{display:flex;flex-wrap:wrap;gap:4px}
+.hex{width:44px;height:50px;display:inline-grid;place-items:center;background:var(--honey);color:var(--honey-ink);clip-path:polygon(50% 0,100% 25%,100% 75%,50% 100%,0 75%,0 25%);font-family:var(--f-letter);font-weight:700;font-size:1.45rem;text-transform:lowercase}
+.hex.miss{background:var(--bad);color:#fff}
+.hex.ok{background:var(--good);color:#fff}
+.hex.blank{background:var(--sunk);color:var(--muted)}
+.tiles.sm .hex{width:32px;height:36px;font-size:1.05rem}
+
+/* surfaces */
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:22px;display:flex;flex-direction:column;gap:16px}
+.hero{display:flex;flex-direction:column;gap:14px;padding-block:10px 4px}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.spread{justify-content:space-between}
+.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+@media (max-width:620px){.grid3{grid-template-columns:1fr}}
+
+.action{text-align:left;background:var(--surface);border:1.5px solid var(--line);border-radius:var(--r);padding:18px;display:flex;flex-direction:column;gap:6px;transition:border-color .15s,transform .15s}
+.action:hover{border-color:var(--accent);transform:translateY(-2px)}
+.action h3{display:flex;align-items:center;gap:8px}
+.action .hex{width:26px;height:30px;font-size:.95rem}
+.action p{color:var(--muted);font-size:.95rem}
+
+.btn{border:0;border-radius:12px;padding:12px 20px;font-weight:700;background:var(--accent);color:var(--accent-ink);font-size:1rem;display:inline-flex;align-items:center;gap:8px;justify-content:center}
+.btn.alt{background:var(--sunk);color:var(--ink)}
+.btn.ghost{background:transparent;border:1.5px solid var(--line);color:var(--ink)}
+.btn.honey{background:var(--honey);color:var(--honey-ink)}
+.btn.big{padding:16px 26px;font-size:1.12rem}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+.link{background:none;border:0;padding:0;color:var(--accent);font-weight:700;text-decoration:underline}
+
+/* meters */
+.meter{height:12px;border-radius:99px;background:var(--sunk);overflow:hidden;display:flex}
+.meter i{display:block;height:100%}
+.legend{display:flex;gap:16px;flex-wrap:wrap;font-size:.9rem;color:var(--muted)}
+.legend b{color:var(--ink);font-variant-numeric:tabular-nums}
+.dot{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:6px;vertical-align:middle}
+
+/* forms */
+label.f{display:flex;flex-direction:column;gap:6px;font-weight:700;font-size:.92rem}
+select,input[type=text]{font:inherit;color:var(--ink);background:var(--surface);border:1.5px solid var(--line);border-radius:10px;padding:10px 12px}
+.seg{display:inline-flex;background:var(--sunk);border-radius:12px;padding:4px;gap:4px;flex-wrap:wrap}
+.seg button{border:0;background:transparent;border-radius:9px;padding:8px 14px;font-weight:700;font-size:.95rem;color:var(--muted)}
+.seg button[aria-pressed="true"]{background:var(--surface);color:var(--ink);box-shadow:0 1px 3px rgb(0 0 0 / .12)}
+
+/* spelling input */
+.spell{width:100%;font-family:var(--f-letter);font-size:2rem;letter-spacing:.12em;text-align:center;padding:14px;border:2.5px solid var(--line);border-radius:14px;background:var(--surface);color:var(--ink)}
+.spell:focus{border-color:var(--accent);outline:none}
+.speak{width:118px;height:118px;border-radius:50%;border:0;background:var(--honey);color:var(--honey-ink);display:grid;place-items:center;font-family:var(--f-display);font-weight:700;font-size:1rem;box-shadow:0 6px 0 color-mix(in srgb,var(--honey) 60%,#000)}
+.speak:active{transform:translateY(4px);box-shadow:0 2px 0 color-mix(in srgb,var(--honey) 60%,#000)}
+.speak svg{width:40px;height:40px}
+.center{display:flex;flex-direction:column;align-items:center;gap:14px;text-align:center}
+
+.note{border-radius:12px;padding:14px 16px;background:var(--sunk);font-size:.96rem}
+.note.good{background:var(--good-soft)} .note.bad{background:var(--bad-soft)} .note.honey{background:var(--honey-soft)}
+.big-result{font-family:var(--f-display);font-size:1.6rem;font-weight:700}
+.big-result.good{color:var(--good)} .big-result.bad{color:var(--bad)}
+
+/* timer */
+.timer{display:flex;flex-direction:column;gap:8px;width:100%}
+.timer .track{display:grid;grid-template-columns:1fr 1fr;gap:4px}
+.timer .seg-t{height:14px;border-radius:99px;background:var(--sunk);overflow:hidden}
+.timer .seg-t i{display:block;height:100%;width:0;background:var(--accent)}
+.timer .seg-t.spell i{background:var(--honey)}
+.timer .labels{display:grid;grid-template-columns:1fr 1fr;gap:4px;font-size:.82rem;color:var(--muted);font-weight:700}
+.secs{font-family:var(--f-display);font-size:3rem;font-weight:700;font-variant-numeric:tabular-nums;line-height:1}
+.phase{font-weight:700;padding:6px 14px;border-radius:99px;background:var(--good-soft);color:var(--good)}
+.phase.spell{background:var(--honey-soft);color:var(--warn)}
+.phase.over{background:var(--bad-soft);color:var(--bad)}
+
+/* judge */
+.judge-word{font-family:var(--f-letter);font-size:2.2rem;font-weight:700;letter-spacing:.04em}
+.judge-word.hidden{filter:blur(12px);user-select:none}
+.outcomes{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+@media (max-width:520px){.outcomes{grid-template-columns:1fr}}
+.oc{border:1.5px solid var(--line);background:var(--surface);border-radius:12px;padding:14px;text-align:left;display:flex;justify-content:space-between;align-items:center;gap:10px;font-weight:700}
+.oc .pts{font-family:var(--f-display);font-size:1.4rem;font-variant-numeric:tabular-nums}
+.oc.plus .pts{color:var(--good)} .oc.minus .pts{color:var(--bad)}
+.oc:hover{border-color:var(--accent)}
+details{border:1px solid var(--line);border-radius:12px;padding:12px 16px;background:var(--surface)}
+summary{cursor:pointer;font-weight:700}
+details ul{margin:10px 0 0;padding-left:20px;display:flex;flex-direction:column;gap:4px;font-size:.95rem}
+
+/* tables */
+.tbl-wrap{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:.95rem}
+th,td{padding:9px 10px;border-bottom:1px solid var(--line);text-align:left;vertical-align:middle}
+th{font-size:.75rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+td.num,th.num{text-align:right;font-variant-numeric:tabular-nums;font-weight:700}
+td .w{font-family:var(--f-letter);font-weight:700}
+.pill{display:inline-block;font-size:.75rem;font-weight:700;padding:2px 9px;border-radius:99px;background:var(--sunk);color:var(--muted);white-space:nowrap}
+.pill.good{background:var(--good-soft);color:var(--good)} .pill.bad{background:var(--bad-soft);color:var(--bad)} .pill.honey{background:var(--honey-soft);color:var(--warn)}
+.scorebox{display:flex;gap:24px;flex-wrap:wrap}
+.scorebox div{display:flex;flex-direction:column}
+.scorebox b{font-family:var(--f-display);font-size:2rem;font-variant-numeric:tabular-nums;line-height:1.1}
+
+/* word bank */
+.bank{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:8px}
+.bw{display:flex;align-items:center;justify-content:space-between;gap:8px;border:1px solid var(--line);background:var(--surface);border-radius:10px;padding:8px 10px;text-align:left;font-family:var(--f-letter);font-size:1.02rem}
+.bw .st{width:10px;height:10px;border-radius:3px;flex:none}
+.st.new{background:var(--line)} .st.learning{background:var(--honey)} .st.tricky{background:var(--bad)} .st.mastered{background:var(--good)}
+
+.hist li{display:flex;justify-content:space-between;gap:12px;padding:8px 0;border-bottom:1px solid var(--line);flex-wrap:wrap}
+.hist{list-style:none;margin:0;padding:0}
+.mic{min-width:220px}
+.mic.on{background:var(--bad);color:#fff;animation:pulse 1.4s ease-in-out infinite}
+@keyframes pulse{0%,100%{box-shadow:0 0 0 0 color-mix(in srgb,var(--bad) 45%,transparent)}50%{box-shadow:0 0 0 12px transparent}}
+.heard{min-height:2.6em;max-width:560px;font-family:var(--f-letter);font-size:1.25rem;color:var(--muted)}
+.checks{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px}
+.checks li{display:flex;gap:10px;align-items:baseline}
+.checks li span{font-weight:700;width:1.2em}
+.checks li.yes span{color:var(--good)} .checks li.no span{color:var(--bad)}
+.oc[aria-pressed="true"]{border-color:var(--accent);background:var(--sunk)}
+.meaning{display:flex;flex-direction:column;gap:8px;text-align:left}
+.topnav{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
+.back{padding:8px 16px;font-size:.95rem}
+.credit{font-size:.82rem;color:var(--muted)}
+@media (prefers-reduced-motion: reduce){*{transition:none!important;animation:none!important}}
+@keyframes pop{0%{transform:scale(.6);opacity:0}100%{transform:scale(1);opacity:1}}
+.pop .hex{animation:pop .28s ease-out both}
+</style>
+
+<div class="wrap">
+  <header class="bar">
+    <button class="brand" data-act="home" aria-label="Bee Ready home"><span class="hex">b</span>Bee Ready</button>
+    <nav class="who" id="who" aria-label="Choose speller"></nav>
+  </header>
+  <main id="app" class="wrap"></main>
+</div>
+
+<script>window.MW_DATA={"alpaca":{"audio":true,"file":"a/alpaca01"},"amends":{"audio":true,"file":"a/amends01"},"apology":{"audio":true,"file":"a/apolog08"},"badger":{"audio":true,"file":"b/badger01"},"ballad":{"audio":true,"file":"b/ballad01"},"barefoot":{"audio":true,"file":"b/barefo01"},"beginning":{"audio":true,"file":"b/beginn02"},"bleary":{"audio":true,"file":"b/bleary01"},"bonfire":{"audio":true,"file":"b/bonfir01"},"braid":{"audio":true,"file":"b/braid001"},"branch":{"audio":true,"file":"b/branch01"},"bridge":{"audio":true,"file":"b/bridge01"},"briefcase":{"audio":true,"file":"b/briefc01"},"brought":{"audio":true,"file":"b/bring002"},"bubbly":{"audio":true,"file":"b/bubbly01"},"buffet":{"audio":true,"file":"b/buffet01"},"bungalow":{"audio":true,"file":"b/bungal01"},"cabbage":{"audio":true,"file":"c/cabbag01"},"canoe":{"audio":true,"file":"c/canoe001"},"canteen":{"audio":true,"file":"c/cantee01"},"cantor":{"audio":true,"file":"c/cantor01"},"caramel":{"audio":true,"file":"c/carame01"},"career":{"audio":true,"file":"c/career01"},"carefully":{"audio":true,"file":"c/carefu02"},"casino":{"audio":true,"file":"c/casino01"},"catnap":{"audio":true,"file":"c/catnap01"},"cello":{"audio":true,"file":"c/cello001"},"chapter":{"audio":true,"file":"c/chapte01"},"chatter":{"audio":true,"file":"c/chatte02"},"chute":{"audio":true,"file":"c/chute001"},"cinderella":{"audio":true,"file":"c/cinder03"},"cleave":{"audio":true,"file":"c/cleave01"},"climate":{"audio":true,"file":"c/climat01"},"colourful":{"audio":true,"file":"c/colorf03"},"compass":{"audio":true,"file":"c/compas01"},"conch":{"audio":true,"file":"c/conch001"},"concrete":{"audio":true,"file":"c/concre04"},"confused":{"audio":true,"file":"c/confus03"},"convoy":{"audio":true,"file":"c/convoy02"},"corgi":{"audio":true,"file":"c/corgi001"},"cough":{"audio":true,"file":"c/cough001"},"country":{"audio":true,"file":"c/countr02"},"cranky":{"audio":true,"file":"c/cranky01"},"creative":{"audio":true,"file":"c/creati06"},"crumpet":{"audio":true,"file":"c/crumpe01"},"daughter":{"audio":true,"file":"d/daught01"},"decade":{"audio":true,"file":"d/decade01"},"december":{"audio":true,"file":"d/decemb01"},"dicey":{"audio":true,"file":"d/dicey001"},"difficult":{"audio":true,"file":"d/diffic02"},"disease":{"audio":true,"file":"d/diseas01"},"divine":{"audio":true,"file":"d/divine01"},"drizzle":{"audio":true,"file":"d/drizzl01"},"drowsy":{"audio":true,"file":"d/drowsy01"},"earmark":{"audio":true,"file":"e/earmar01"},"eggplant":{"audio":true,"file":"e/eggpla01"},"eighth":{"audio":true,"file":"e/eighth01"},"either":{"audio":true,"file":"e/either02"},"elderly":{"audio":true,"file":"e/elderl01"},"ellipse":{"audio":true,"file":"e/ellips01"},"emperor":{"audio":true,"file":"e/empero01"},"endure":{"audio":true,"file":"e/endure01"},"entreat":{"audio":true,"file":"e/entrea01"},"erase":{"audio":true,"file":"e/erase001"},"erode":{"audio":true,"file":"e/erode001"},"explode":{"audio":true,"file":"e/explod01"},"extinct":{"audio":true,"file":"e/extinc02"},"exude":{"audio":true,"file":"e/exude001"},"fallacy":{"audio":true,"file":"f/fallac02"},"famous":{"audio":true,"file":"f/famous01"},"fanatic":{"audio":true,"file":"f/fanati01"},"farewell":{"audio":true,"file":"f/farewe01"},"feeble":{"audio":true,"file":"f/feeble01"},"ferret":{"audio":true,"file":"f/ferret01"},"finish":{"audio":true,"file":"f/finish01"},"fission":{"audio":true,"file":"f/fissio01"},"flight":{"audio":true,"file":"f/flight01"},"flounder":{"audio":true,"file":"f/flound01"},"flourish":{"audio":true,"file":"f/flouri01"},"flout":{"audio":true,"file":"f/flout001"},"fluid":{"audio":true,"file":"f/fluid001"},"folate":{"audio":true,"file":"f/folate01"},"foosball":{"audio":true,"file":"f/foosba01"},"foozle":{"audio":true,"file":"f/foozle01"},"foreign":{"audio":true,"file":"f/foreig01"},"forfeit":{"audio":true,"file":"f/forfei01"},"fortune":{"audio":true,"file":"f/fortun03"},"forward":{"audio":true,"file":"f/forwar01"},"freckle":{"audio":true,"file":"f/freckl01"},"friendship":{"audio":true,"file":"f/friend05"},"frisket":{"audio":true,"file":"f/friske01"},"frock":{"audio":true,"file":"f/frock001"},"frown":{"audio":true,"file":"f/frown001"},"furnace":{"audio":true,"file":"f/furnac01"},"gaggle":{"audio":true,"file":"g/gaggle01"},"galley":{"audio":true,"file":"g/galley01"},"gargle":{"audio":true,"file":"g/gargle01"},"garlic":{"audio":true,"file":"g/garlic01"},"genius":{"audio":true,"file":"g/genius01"},"genteel":{"audio":true,"file":"g/gentee01"},"gizzard":{"audio":true,"file":"g/gizzar01"},"glimmer":{"audio":true,"file":"g/glimme01"},"glisten":{"audio":true,"file":"g/gliste01"},"glucose":{"audio":true,"file":"g/glucos02"},"gnome":{"audio":true,"file":"g/gnome001"},"goofy":{"audio":true,"file":"g/goofy001"},"gossip":{"audio":true,"file":"g/gossip01"},"gotcha":{"audio":true,"file":"g/gotcha01"},"graham":{"audio":true,"file":"bix/bixgra03"},"grapple":{"audio":true,"file":"g/grappl01"},"groom":{"audio":true,"file":"g/groom002"},"groove":{"audio":true,"file":"g/groove01"},"grotto":{"audio":true,"file":"g/grotto01"},"grout":{"audio":true,"file":"g/grout001"},"gruel":{"audio":true,"file":"g/gruel001"},"haggle":{"audio":true,"file":"h/haggle01"},"hamlet":{"audio":true,"file":"h/hamlet01"},"handle":{"audio":true,"file":"h/handle01"},"handyman":{"audio":true,"file":"h/handym01"},"hangar":{"audio":true,"file":"h/hangar02"},"harness":{"audio":true,"file":"h/harnes01"},"hatchet":{"audio":true,"file":"h/hatche03"},"hazelnut":{"audio":true,"file":"h/hazeln01"},"heavenly":{"audio":true,"file":"h/heaven02"},"heiress":{"audio":true,"file":"h/heires01"},"heist":{"audio":true,"file":"h/heist001"},"hijab":{"audio":true,"file":"h/hijab01v"},"hoax":{"audio":true,"file":"h/hoax0001"},"honeybee":{"audio":true,"file":"h/honeyb01"},"horizon":{"audio":true,"file":"h/horizo01"},"howler":{"audio":true,"file":"h/howler01"},"hurriedly":{"audio":true,"file":"h/hurrie02"},"hydra":{"audio":true,"file":"gg/gghydr01"},"hydrant":{"audio":true,"file":"h/hydran02"},"iceberg":{"audio":true,"file":"i/iceber01"},"ignite":{"audio":true,"file":"i/ignite01"},"inched":{"audio":true,"file":"i/inched01"},"income":{"audio":true,"file":"i/income01"},"indigo":{"audio":true,"file":"i/indigo01"},"infant":{"audio":true,"file":"i/infant01"},"infirm":{"audio":true,"file":"i/infirm01"},"instrument":{"audio":true,"file":"i/instru08"},"island":{"audio":true,"file":"i/island01"},"jammer":{"audio":true,"file":"j/jam00002"},"january":{"audio":true,"file":"j/januar01"},"jersey":{"audio":true,"file":"j/jersey01"},"jewel":{"audio":true,"file":"j/jewel001"},"journal":{"audio":true,"file":"j/journa01"},"joyful":{"audio":true,"file":"j/joyful01"},"junior":{"audio":true,"file":"j/junior01"},"kazoo":{"audio":true,"file":"k/kazoo001"},"kennel":{"audio":true,"file":"k/kennel01"},"knight":{"audio":true,"file":"k/knight01"},"knock":{"audio":true,"file":"k/knock001"},"knoll":{"audio":true,"file":"k/knoll001"},"known":{"audio":true,"file":"k/known002"},"knuckle":{"audio":true,"file":"k/knuckl01"},"kudos":{"audio":true,"file":"k/kudos001"},"lantern":{"audio":true,"file":"l/lanter01"},"laptop":{"audio":true,"file":"l/laptop01"},"laugh":{"audio":true,"file":"l/laugh001"},"laughter":{"audio":true,"file":"l/laught01"},"league":{"audio":true,"file":"l/league01"},"leaven":{"audio":true,"file":"l/leaven01"},"legacy":{"audio":true,"file":"l/legacy01"},"lettuce":{"audio":true,"file":"l/lettuc01"},"liberty":{"audio":true,"file":"l/libert06"},"limited":{"audio":true,"file":"l/limit01v"},"linen":{"audio":true,"file":"l/linen001"},"liquid":{"audio":true,"file":"l/liquid01"},"livid":{"audio":true,"file":"l/livid001"},"lotion":{"audio":true,"file":"l/lotion01"},"lounge":{"audio":true,"file":"l/lounge01"},"macaw":{"audio":true,"file":"m/macaw001"},"magical":{"audio":true,"file":"m/magic002"},"mambo":{"audio":true,"file":"m/mambo001"},"manacle":{"audio":true,"file":"m/manacl01"},"mandate":{"audio":true,"file":"m/mandat02"},"married":{"audio":true,"file":"m/marrie01"},"martial":{"audio":true,"file":"m/martia01"},"massive":{"audio":true,"file":"m/massiv01"},"maybe":{"audio":true,"file":"m/maybe001"},"measly":{"audio":true,"file":"m/measly01"},"meekness":{"audio":true,"file":"m/meekness_1"},"meeting":{"audio":true,"file":"m/meetin01"},"melody":{"audio":true,"file":"m/melody01"},"menial":{"audio":true,"file":"m/menial01"},"merlin":{"audio":true,"file":"m/merlin01"},"middle":{"audio":true,"file":"m/middle01"},"mince":{"audio":true,"file":"m/mince001"},"mischief":{"audio":true,"file":"m/mischi01"},"misery":{"audio":true,"file":"m/misery01"},"missive":{"audio":true,"file":"m/missiv01"},"mister":{"audio":true,"file":"m/mister01"},"modem":{"audio":true,"file":"m/modem002"},"modify":{"audio":true,"file":"m/modify01"},"mogul":{"audio":true,"file":"m/mogul001"},"months":{"audio":true,"file":"m/month002"},"moped":{"audio":true,"file":"m/moped001"},"mortal":{"audio":true,"file":"m/mortal01"},"myself":{"audio":true,"file":"m/myself01"},"napkin":{"audio":true,"file":"n/napkin01"},"national":{"audio":true,"file":"n/nation02"},"neigh":{"audio":true,"file":"n/neigh001"},"newbie":{"audio":true,"file":"n/newbi01s"},"nibble":{"audio":true,"file":"n/nibble01"},"nominee":{"audio":true,"file":"n/nomine01"},"nourish":{"audio":true,"file":"n/nouris01"},"oasis":{"audio":true,"file":"o/oasis001"},"oblong":{"audio":true,"file":"o/oblong01"},"omega":{"audio":true,"file":"o/omega002"},"onion":{"audio":true,"file":"o/onion001"},"operation":{"audio":true,"file":"o/operat04"},"opposite":{"audio":true,"file":"o/opposi01"},"ouster":{"audio":true,"file":"o/ouster01"},"ozone":{"audio":true,"file":"o/ozone001"},"paisley":{"audio":true,"file":"p/paisle01"},"parley":{"audio":true,"file":"p/parley01"},"partner":{"audio":true,"file":"p/partne02"},"pastime":{"audio":true,"file":"p/pastim01"},"pastry":{"audio":true,"file":"p/pastry01"},"patience":{"audio":true,"file":"p/patien01"},"pattern":{"audio":true,"file":"p/patter03"},"peanut":{"audio":true,"file":"p/peanut01"},"peddle":{"audio":true,"file":"p/peddle01"},"pending":{"audio":true,"file":"p/pendin01"},"penguin":{"audio":true,"file":"p/pengui01"},"percent":{"audio":true,"file":"p/percen01"},"photograph":{"audio":true,"file":"p/photog13"},"physical":{"audio":true,"file":"p/physic02"},"physics":{"audio":true,"file":"p/physic13"},"picture":{"audio":true,"file":"p/pictur01"},"pigeon":{"audio":true,"file":"p/pigeon01"},"pisces":{"audio":true,"file":"p/pisces01"},"plastic":{"audio":true,"file":"p/plasti01"},"plover":{"audio":true,"file":"p/plover02"},"pluck":{"audio":true,"file":"p/pluck001"},"ponytail":{"audio":true,"file":"p/ponyta01"},"potato":{"audio":true,"file":"p/potato02"},"powerful":{"audio":true,"file":"p/powerf01"},"praise":{"audio":true,"file":"p/praise01"},"prepare":{"audio":true,"file":"p/prepar07"},"princess":{"audio":true,"file":"p/prince11"},"prism":{"audio":true,"file":"p/prism001"},"privacy":{"audio":true,"file":"p/privac01"},"proposal":{"audio":true,"file":"p/propos01"},"proxy":{"audio":true,"file":"p/proxy001"},"publish":{"audio":true,"file":"p/publis01"},"puckish":{"audio":true,"file":"p/puckis01"},"pulpit":{"audio":true,"file":"p/pulpit01"},"pumpkin":{"audio":true,"file":"p/pumpki02"},"punily":{"audio":true,"file":"p/puny0002"},"puritan":{"audio":true,"file":"p/purita01"},"purple":{"audio":true,"file":"p/purple01"},"putrid":{"audio":true,"file":"p/putrid01"},"quack":{"audio":true,"file":"q/quack001"},"quantify":{"audio":true,"file":"q/quanti04"},"quota":{"audio":true,"file":"q/quota001"},"rabid":{"audio":true,"file":"r/rabid001"},"raisin":{"audio":true,"file":"r/raisin01"},"ratio":{"audio":true,"file":"r/ratio001"},"reaction":{"audio":true,"file":"r/reacti01"},"rebuff":{"audio":true,"file":"r/rebuff01"},"receive":{"audio":true,"file":"r/receiv03"},"record":{"audio":true,"file":"r/record01"},"recovery":{"audio":true,"file":"r/recove07"},"reflect":{"audio":true,"file":"r/reflec01"},"reign":{"audio":true,"file":"r/reign001"},"rely":{"audio":true,"file":"r/rely0001"},"remember":{"audio":true,"file":"r/rememb01"},"rescue":{"audio":true,"file":"r/rescue01"},"respect":{"audio":true,"file":"r/respec01"},"respite":{"audio":true,"file":"r/respit01"},"restaurant":{"audio":true,"file":"r/restau01"},"restive":{"audio":true,"file":"r/restiv01"},"retriever":{"audio":true,"file":"r/retrie05"},"ribbon":{"audio":true,"file":"r/ribbon01"},"rickshaw":{"audio":true,"file":"r/ricksh01"},"riddle":{"audio":true,"file":"r/riddle01"},"riffraff":{"audio":true,"file":"r/riffra01"},"rocket":{"audio":true,"file":"r/rocket01"},"rooster":{"audio":true,"file":"r/rooste02"},"routine":{"audio":true,"file":"r/routin01"},"rugby":{"audio":true,"file":"r/rugby001"},"rumor":{"audio":true,"file":"r/rumor001"},"sadly":{"audio":true,"file":"s/sadly01ld"},"satchel":{"audio":true,"file":"s/satche01"},"satisfaction":{"audio":true,"file":"s/satisf01"},"scandal":{"audio":true,"file":"s/scanda01"},"scanty":{"audio":true,"file":"s/scanty01"},"scent":{"audio":true,"file":"s/scent001"},"sci-fi":{"audio":true,"file":"s/scifi001"},"scoop":{"audio":true,"file":"s/scoop001"},"scooter":{"audio":true,"file":"s/scoote01"},"scorch":{"audio":true,"file":"s/scorch01"},"screen":{"audio":true,"file":"s/screen01"},"scrooge":{"audio":true,"file":"s/scroog01"},"scullery":{"audio":true,"file":"s/sculle01"},"season":{"audio":true,"file":"s/season01"},"semester":{"audio":true,"file":"s/semest01"},"sequel":{"audio":true,"file":"s/sequel01"},"serious":{"audio":true,"file":"s/seriou01"},"shaggy":{"audio":true,"file":"s/shaggy01"},"shindig":{"audio":true,"file":"s/shindi01"},"shorthand":{"audio":true,"file":"s/shorth02"},"shoulder":{"audio":true,"file":"s/should02"},"shrimp":{"audio":true,"file":"s/shrimp01"},"simplify":{"audio":true,"file":"s/simpli04"},"sizzle":{"audio":true,"file":"s/sizzle01"},"slither":{"audio":true,"file":"s/slithe01"},"slurry":{"audio":true,"file":"s/slurry01"},"smashed":{"audio":true,"file":"s/smashe01"},"snitch":{"audio":true,"file":"s/snitch01"},"software":{"audio":true,"file":"s/softwa01"},"sparkle":{"audio":true,"file":"s/sparkl01"},"sparkly":{"audio":true,"file":"s/sparkl03"},"spiteful":{"audio":true,"file":"s/spitef01"},"spoken":{"audio":true,"file":"s/spoken01"},"sprite":{"audio":true,"file":"s/sprite01"},"square":{"audio":true,"file":"s/square01"},"stable":{"audio":true,"file":"s/stable01"},"stance":{"audio":true,"file":"s/stance01"},"standee":{"audio":true,"file":"s/stande01"},"sterling":{"audio":true,"file":"s/sterli01"},"sticky":{"audio":true,"file":"s/sticky01"},"stirring":{"audio":true,"file":"s/stirri01"},"stubble":{"audio":true,"file":"s/stubbl01"},"subject":{"audio":true,"file":"s/subjec01"},"suffer":{"audio":true,"file":"s/suffer01"},"suggest":{"audio":true,"file":"s/sugges01"},"summer":{"audio":true,"file":"s/summer01"},"surly":{"audio":true,"file":"s/surly001"},"sword":{"audio":true,"file":"s/sword001"},"talent":{"audio":true,"file":"t/talent01"},"tango":{"audio":true,"file":"t/tango001"},"tawny":{"audio":true,"file":"t/tawny001"},"telephone":{"audio":true,"file":"t/teleph01"},"thousand":{"audio":true,"file":"t/thousa01"},"thrift":{"audio":true,"file":"t/thrift01"},"tighten":{"audio":true,"file":"t/tighte01"},"timber":{"audio":true,"file":"t/timber01"},"towel":{"audio":true,"file":"t/towel001"},"treatment":{"audio":true,"file":"t/treatm01"},"trifle":{"audio":true,"file":"t/trifle01"},"troll":{"audio":true,"file":"t/troll001"},"truffle":{"audio":true,"file":"t/truffl02"},"turtle":{"audio":true,"file":"t/turtle01"},"twilight":{"audio":true,"file":"t/twilig01"},"unfurl":{"audio":true,"file":"u/unfurl01"},"upset":{"audio":true,"file":"u/upset001"},"upsetting":{"audio":true,"file":"u/upsetting_1"},"usher":{"audio":true,"file":"u/usher001"},"vault":{"audio":true,"file":"v/vault001"},"version":{"audio":true,"file":"v/versio01"},"victory":{"audio":true,"file":"v/victor08"},"wattage":{"audio":true,"file":"w/wattag01"},"wealthy":{"audio":true,"file":"w/wealth02"},"wheedle":{"audio":true,"file":"w/wheedl01"},"whereas":{"audio":true,"file":"w/wherea03"},"whey":{"audio":true,"file":"w/whey0001"},"wince":{"audio":true,"file":"w/wince001"},"worse":{"audio":true,"file":"w/worse001"},"aboriginal":{"audio":true,"file":"a/aborig01"},"abrogate":{"audio":true,"file":"a/abroga01"},"acquire":{"audio":true,"file":"a/acquir02"},"addendum":{"audio":true,"file":"a/addend03"},"adjudicate":{"audio":true,"file":"a/adjudi01"},"administration":{"audio":true,"file":"a/admini06"},"admonition":{"audio":true,"file":"a/admoni04"},"advection":{"audio":true,"file":"a/advect01"},"aerospace":{"audio":true,"file":"a/aerosp01"},"affirmation":{"audio":true,"file":"a/affirm04"},"agoraphobia":{"audio":true,"file":"a/agorap01"},"agricultural":{"audio":true,"file":"a/agricu01"},"ailment":{"audio":true,"file":"a/ailmen01"},"aircraft":{"audio":true,"file":"a/aircra01"},"alacrity":{"audio":true,"file":"a/alacri01"},"algae":{"audio":true,"file":"a/alga0002"},"allegiance":{"audio":true,"file":"a/allegi01"},"allotted":{"audio":true,"file":"a/allotted_1"},"allowance":{"audio":true,"file":"a/allowa03"},"ambition":{"audio":true,"file":"a/ambiti01"},"anchor":{"audio":true,"file":"a/anchor01"},"annihilate":{"audio":true,"file":"a/annihi01"},"anthropology":{"audio":true,"file":"a/anthro09"},"antiquarian":{"audio":true,"file":"a/antiqu01"},"apparently":{"audio":true,"file":"a/appare04"},"appellation":{"audio":true,"file":"a/appell03"},"appetite":{"audio":true,"file":"a/appeti01"},"applicable":{"audio":true,"file":"a/applic02"},"appointed":{"audio":true,"file":"a/appointed_1"},"appraisal":{"audio":true,"file":"a/apprai01"},"apprehensive":{"audio":true,"file":"a/appreh05"},"arduous":{"audio":true,"file":"a/arduou01"},"arithmetic":{"audio":true,"file":"a/arithm01"},"armadillo":{"audio":true,"file":"a/armadi01"},"assistance":{"audio":true,"file":"a/assist02"},"astounding":{"audio":true,"file":"a/astoun02"},"atonement":{"audio":true,"file":"a/atonem01"},"atrophy":{"audio":true,"file":"a/atroph01"},"audience":{"audio":true,"file":"a/audien01"},"automated":{"audio":true,"file":"a/automated_1"},"avalanche":{"audio":true,"file":"a/avalan01"},"aviation":{"audio":true,"file":"a/aviati01"},"axiomatic":{"audio":true,"file":"a/axioma01"},"bachelor":{"audio":true,"file":"b/bachelor"},"bachelorette":{"audio":true,"file":"b/bachelorette"},"backgammon":{"audio":true,"file":"b/backga01"},"balloonist":{"audio":true,"file":"b/balloo03"},"bandicoot":{"audio":true,"file":"b/bandic01"},"baptismal":{"audio":true,"file":"b/baptis03"},"beatific":{"audio":true,"file":"b/beatif01"},"bedraggled":{"audio":true,"file":"b/bedrag02"},"bemused":{"audio":true,"file":"b/bemused_1"},"blistering":{"audio":true,"file":"b/bliste04"},"blockbuster":{"audio":true,"file":"b/blockb01"},"bonanza":{"audio":true,"file":"b/bonanz01"},"buffoonery":{"audio":true,"file":"b/buffoo03"},"bulbous":{"audio":true,"file":"b/bulbou02"},"bulletin":{"audio":true,"file":"b/bullet04"},"calibrate":{"audio":true,"file":"c/calibr01"},"calisthenics":{"audio":true,"file":"c/calist02"},"campaign":{"audio":true,"file":"c/campai01"},"cannonade":{"audio":true,"file":"c/cannon02"},"capitalist":{"audio":true,"file":"c/capita03"},"captivated":{"audio":true,"file":"c/captivated_1"},"capture":{"audio":true,"file":"c/captur01"},"carpenter":{"audio":true,"file":"c/carpen01"},"carrier":{"audio":true,"file":"c/carrie01"},"casserole":{"audio":true,"file":"c/casser01"},"cathedral":{"audio":true,"file":"c/cathed02"},"ceremony":{"audio":true,"file":"c/ceremo06"},"certain":{"audio":true,"file":"c/certai01"},"channel":{"audio":true,"file":"c/channe01"},"charioteer":{"audio":true,"file":"c/chario02"},"charitable":{"audio":true,"file":"c/charit01"},"chimney":{"audio":true,"file":"c/chimne01"},"choreographer":{"audio":true,"file":"c/choreo02"},"chronic":{"audio":true,"file":"c/chroni01"},"cinnamon":{"audio":true,"file":"c/cinnam02"},"clarion":{"audio":true,"file":"c/clario01"},"coalition":{"audio":true,"file":"c/coalit01"},"cobalt":{"audio":true,"file":"c/cobalt01"},"collude":{"audio":true,"file":"c/collud01"},"combination":{"audio":true,"file":"c/combin01"},"comedienne":{"audio":true,"file":"c/comedi04"},"commercial":{"audio":true,"file":"c/commer03"},"committee":{"audio":true,"file":"c/commit05"},"commotion":{"audio":true,"file":"c/commot01"},"compact":{"audio":true,"file":"c/compac01"},"comparison":{"audio":true,"file":"c/compar11"},"comprehend":{"audio":true,"file":"c/compre01"},"concentrate":{"audio":true,"file":"c/concen03"},"concise":{"audio":true,"file":"c/concis01"},"confection":{"audio":true,"file":"c/confec03"},"consequent":{"audio":true,"file":"c/conse01l"},"consideration":{"audio":true,"file":"c/consid06"},"constellation":{"audio":true,"file":"c/conste02"},"continental":{"audio":true,"file":"c/contin04"},"continuous":{"audio":true,"file":"c/contin19"},"contraction":{"audio":true,"file":"c/contra19"},"convocation":{"audio":true,"file":"c/convoc01"},"cookie-cutter":{"audio":true,"file":"c/cookie-cutter_1"},"corporate":{"audio":true,"file":"c/corpor04"},"coverage":{"audio":true,"file":"c/covera01"},"crises":{"audio":true,"file":"c/crisis02"},"crucial":{"audio":true,"file":"c/crucia01"},"cultural":{"audio":true,"file":"c/cultur01"},"curie":{"audio":true,"file":"c/curie001"},"curtail":{"audio":true,"file":"c/curtai01"},"decrepitude":{"audio":true,"file":"d/decrep04"},"definition":{"audio":true,"file":"d/defini07"},"deportment":{"audio":true,"file":"d/deport05"},"descent":{"audio":true,"file":"d/descen06"},"despite":{"audio":true,"file":"d/despit01"},"diaphanous":{"audio":true,"file":"d/diapha02"},"dietary":{"audio":true,"file":"d/dietar01"},"diligent":{"audio":true,"file":"d/dilige04"},"diminished":{"audio":true,"file":"d/diminished_1"},"discussion":{"audio":true,"file":"d/discus05"},"disembark":{"audio":true,"file":"d/disemb01"},"disengage":{"audio":true,"file":"d/diseng01"},"disinfectant":{"audio":true,"file":"d/disinf03"},"dissipate":{"audio":true,"file":"d/dissip01"},"distressed":{"audio":true,"file":"d/distressed_1"},"disturbance":{"audio":true,"file":"d/distur03"},"doppler":{"audio":true,"file":"bix/bixdop01"},"duodenum":{"audio":true,"file":"d/duoden01"},"ecstatic":{"audio":true,"file":"e/ecstat01"},"edification":{"audio":true,"file":"e/edific01"},"educational":{"audio":true,"file":"e/educat03"},"effectively":{"audio":true,"file":"e/effect04"},"effusive":{"audio":true,"file":"e/effusi02"},"elaborative":{"audio":true,"file":"e/elabor04"},"elicitation":{"audio":true,"file":"e/elicit02"},"eligibility":{"audio":true,"file":"e/eligib02"},"emancipator":{"audio":true,"file":"e/emanci02"},"endorphin":{"audio":true,"file":"e/endorp01"},"energetic":{"audio":true,"file":"e/energe01"},"entertainment":{"audio":true,"file":"e/entert03"},"equation":{"audio":true,"file":"e/equati01"},"equator":{"audio":true,"file":"e/equato01"},"equestrian":{"audio":true,"file":"e/equest01"},"esteem":{"audio":true,"file":"e/esteem01"},"exoneration":{"audio":true,"file":"e/exoner02"},"expansion":{"audio":true,"file":"e/expans04"},"expensive":{"audio":true,"file":"e/expens02"},"expiration":{"audio":true,"file":"e/expira01"},"exterior":{"audio":true,"file":"e/exteri01"},"extraordinaire":{"audio":true,"file":"e/extrao02"},"extremely":{"audio":true,"file":"e/extremely_1"},"façade":{"audio":true,"file":"f/facade01"},"fascinator":{"audio":true,"file":"f/fascin05"},"fearsome":{"audio":true,"file":"f/fearso01"},"felonious":{"audio":true,"file":"f/feloni01"},"filial":{"audio":true,"file":"f/filial01"},"financier":{"audio":true,"file":"f/financ05"},"flexitarian":{"audio":true,"file":"f/flexit01"},"fluoride":{"audio":true,"file":"f/fluori05"},"foolishness":{"audio":true,"file":"f/foolishness_1"},"fortification":{"audio":true,"file":"f/fortif01"},"frustration":{"audio":true,"file":"f/frustr04"},"fundamental":{"audio":true,"file":"f/fundam02"},"furrow":{"audio":true,"file":"f/furrow01"},"garland":{"audio":true,"file":"g/garlan01"},"gendered":{"audio":true,"file":"g/gender03"},"generosity":{"audio":true,"file":"g/genero01"},"genus":{"audio":true,"file":"g/genus002"},"geometry":{"audio":true,"file":"g/geomet11"},"glossary":{"audio":true,"file":"g/glossa04"},"gnarled":{"audio":true,"file":"g/gnarle01"},"gratingly":{"audio":true,"file":"g/grate002"},"hallowed":{"audio":true,"file":"h/hallow02"},"handiwork":{"audio":true,"file":"h/handiw01"},"herbaceous":{"audio":true,"file":"h/herbac01"},"heredity":{"audio":true,"file":"h/heredi05"},"hexagonal":{"audio":true,"file":"h/hexago02"},"hiatus":{"audio":true,"file":"h/hiatus01"},"hilarity":{"audio":true,"file":"h/hilari02"},"honorific":{"audio":true,"file":"h/honori01"},"humdrum":{"audio":true,"file":"h/humdru01"},"immediately":{"audio":true,"file":"i/immedi03"},"impacted":{"audio":true,"file":"i/impact05"},"importunate":{"audio":true,"file":"i/import09"},"imposing":{"audio":true,"file":"i/imposi01"},"improvise":{"audio":true,"file":"i/improv14"},"indefatigable":{"audio":true,"file":"i/indefa01"},"industrial":{"audio":true,"file":"i/indust01"},"infraction":{"audio":true,"file":"i/infrac01"},"infuriating":{"audio":true,"file":"i/infuriating_1"},"innovator":{"audio":true,"file":"i/innova02"},"inspiring":{"audio":true,"file":"i/inspiring_1"},"instantaneous":{"audio":true,"file":"i/instan05"},"insubstantial":{"audio":true,"file":"i/insubs01"},"intensify":{"audio":true,"file":"i/intens03"},"interlocutor":{"audio":true,"file":"i/interl16"},"internally":{"audio":true,"file":"i/intern12"},"inundate":{"audio":true,"file":"i/inunda01"},"invasive":{"audio":true,"file":"i/invasi02"},"invertebrate":{"audio":true,"file":"i/invert04"},"investigation":{"audio":true,"file":"i/invest05"},"juncture":{"audio":true,"file":"j/junctu02"},"kerchief":{"audio":true,"file":"k/kerchi01"},"leotard":{"audio":true,"file":"l/leotar01"},"liturgy":{"audio":true,"file":"l/liturg07"},"logical":{"audio":true,"file":"l/logica01"},"macrobiotics":{"audio":true,"file":"m/macrobiotics_1"},"macrocosm":{"audio":true,"file":"m/macroc01"},"madrigal":{"audio":true,"file":"m/madrig01"},"manure":{"audio":true,"file":"m/manure01"},"marionette":{"audio":true,"file":"m/marion01"},"maternity":{"audio":true,"file":"m/matern03"},"memorial":{"audio":true,"file":"m/memori01"},"merchandise":{"audio":true,"file":"m/mercha01"},"mercury":{"audio":true,"file":"m/mercur09"},"messenger":{"audio":true,"file":"m/messen01"},"michigander":{"audio":true,"file":"gg/ggmich03"},"microscope":{"audio":true,"file":"m/micros02"},"microwave":{"audio":true,"file":"m/microw02"},"ministry":{"audio":true,"file":"m/minist08"},"misconception":{"audio":true,"file":"m/misco2s3"},"momentous":{"audio":true,"file":"m/moment05"},"multiplication":{"audio":true,"file":"m/multip08"},"museum":{"audio":true,"file":"m/museum01"},"musician":{"audio":true,"file":"m/musici01"},"mystical":{"audio":true,"file":"m/mystic02"},"naturalist":{"audio":true,"file":"n/natura05"},"nausea":{"audio":true,"file":"n/nausea02"},"nebulous":{"audio":true,"file":"n/nebulo02"},"neglected":{"audio":true,"file":"n/neglected_1"},"nervous":{"audio":true,"file":"n/nervou01"},"nonconformist":{"audio":true,"file":"n/noncon07"},"obliterate":{"audio":true,"file":"o/oblite01"},"oblivious":{"audio":true,"file":"o/oblivi02"},"obvious":{"audio":true,"file":"o/obviou01"},"octopus":{"audio":true,"file":"o/octopu01"},"odiferous":{"audio":true,"file":"o/odife01v"},"oligarchy":{"audio":true,"file":"o/oligar06"},"olympiad":{"audio":true,"file":"o/olympi01"},"omnibus":{"audio":true,"file":"o/omnibu01"},"onerous":{"audio":true,"file":"o/onerou02"},"opponent":{"audio":true,"file":"o/oppone01"},"orchestra":{"audio":true,"file":"o/orches01"},"organelle":{"audio":true,"file":"o/organe01"},"organist":{"audio":true,"file":"o/organi10"},"oxygenate":{"audio":true,"file":"o/oxygen05"},"paginate":{"audio":true,"file":"p/pagina01"},"palliative":{"audio":true,"file":"p/pallia07"},"palmate":{"audio":true,"file":"p/palmat02"},"panama":{"audio":true,"file":"p/panama01"},"parkour":{"audio":true,"file":"p/parkou01"},"pastrami":{"audio":true,"file":"p/pastra01"},"pavement":{"audio":true,"file":"p/paveme01"},"peculiar":{"audio":true,"file":"p/peculi01"},"perfection":{"audio":true,"file":"p/perfec09"},"perimeter":{"audio":true,"file":"p/perime01"},"permafrost":{"audio":true,"file":"p/permaf01"},"perpetual":{"audio":true,"file":"p/perpet04"},"personnel":{"audio":true,"file":"p/person28"},"petrifying":{"audio":true,"file":"p/petrifying_1"},"phalanges":{"audio":true,"file":"p/phalan09"},"pharaoh":{"audio":true,"file":"p/pharao02"},"pharmacy":{"audio":true,"file":"p/pharma19"},"plaiting":{"audio":true,"file":"p/platin02"},"planetarium":{"audio":true,"file":"p/planet03"},"platitude":{"audio":true,"file":"p/platit01"},"practically":{"audio":true,"file":"p/practi08"},"precursor":{"audio":true,"file":"p/precur02"},"premonition":{"audio":true,"file":"p/premon03"},"previous":{"audio":true,"file":"p/previo01"},"primitive":{"audio":true,"file":"p/primit01"},"principality":{"audio":true,"file":"p/princi04"},"quaver":{"audio":true,"file":"q/quaver01"},"quizzical":{"audio":true,"file":"q/quizzi01"},"reasonable":{"audio":true,"file":"r/reason04"},"rectitude":{"audio":true,"file":"r/rectit01"},"recuperation":{"audio":true,"file":"r/recupe02"},"redemption":{"audio":true,"file":"r/redemp01"},"referendum":{"audio":true,"file":"r/refere03"},"reiterate":{"audio":true,"file":"r/reiter01"},"remarkable":{"audio":true,"file":"r/remark02"},"repository":{"audio":true,"file":"r/reposi06"},"reprieve":{"audio":true,"file":"r/reprie02"},"resemble":{"audio":true,"file":"r/resemb03"},"residence":{"audio":true,"file":"r/reside02"},"revulsive":{"audio":true,"file":"r/revuls03"},"riviera":{"audio":true,"file":"r/rivier01"},"roundabout":{"audio":true,"file":"r/rounda01"},"salubrious":{"audio":true,"file":"s/salubr01"},"salvation":{"audio":true,"file":"s/salvat01"},"scattering":{"audio":true,"file":"s/scatt01v"},"scavenger":{"audio":true,"file":"s/scaven02"},"scenery":{"audio":true,"file":"s/scener01"},"scornfully":{"audio":true,"file":"s/scornf02"},"scorpion":{"audio":true,"file":"s/scorpi02"},"scoundrel":{"audio":true,"file":"s/scound01"},"scrambling":{"audio":true,"file":"s/scramb02"},"scripture":{"audio":true,"file":"s/script06"},"sediment":{"audio":true,"file":"s/sedime01"},"segregation":{"audio":true,"file":"s/segreg05"},"seismologist":{"audio":true,"file":"s/seismo08"},"septum":{"audio":true,"file":"s/septum01"},"serval":{"audio":true,"file":"s/serval01"},"sheaves":{"audio":true,"file":"s/sheaf002"},"shepherd":{"audio":true,"file":"s/shephe01"},"shortage":{"audio":true,"file":"s/shorta01"},"slobbery":{"audio":true,"file":"s/slobbe03"},"sophisticated":{"audio":true,"file":"s/sophis09"},"specificity":{"audio":true,"file":"s/specif04"},"specimen":{"audio":true,"file":"s/specim01"},"squabble":{"audio":true,"file":"s/squabb01"},"squander":{"audio":true,"file":"s/squand01"},"starvation":{"audio":true,"file":"s/starva01"},"steeve":{"audio":true,"file":"s/steeve01"},"subdivision":{"audio":true,"file":"s/subdiv03"},"subdued":{"audio":true,"file":"s/subdue02"},"substance":{"audio":true,"file":"s/substa02"},"successive":{"audio":true,"file":"s/succes09"},"superlative":{"audio":true,"file":"s/superl01"},"surrogate":{"audio":true,"file":"s/surrog03"},"swale":{"audio":true,"file":"s/swale001"},"syringe":{"audio":true,"file":"s/syring02"},"tapestry":{"audio":true,"file":"t/tapest02"},"tariff":{"audio":true,"file":"t/tariff01"},"taxidermy":{"audio":true,"file":"t/taxide01"},"teamwork":{"audio":true,"file":"t/teamwo01"},"testament":{"audio":true,"file":"t/testam01"},"thermostat":{"audio":true,"file":"t/thermo59"},"throttle":{"audio":true,"file":"t/thrott01"},"tightrope":{"audio":true,"file":"t/tightr01"},"tortoise":{"audio":true,"file":"t/tortoi01"},"tributary":{"audio":true,"file":"t/tribut01"},"turbulent":{"audio":true,"file":"t/turbul03"},"ugliness":{"audio":true,"file":"u/ugline01"},"unappealing":{"audio":true,"file":"u/unappe02"},"undercroft":{"audio":true,"file":"u/underc15"},"undertake":{"audio":true,"file":"u/undert01"},"undesirable":{"audio":true,"file":"u/undesi02"},"unhindered":{"audio":true,"file":"u/unhin01ld"},"unique":{"audio":true,"file":"u/unique01"},"universal":{"audio":true,"file":"u/univer01"},"valorous":{"audio":true,"file":"v/valoro01"},"vegetation":{"audio":true,"file":"v/vegeta07"},"vineyard":{"audio":true,"file":"v/vineya01"},"visibility":{"audio":true,"file":"v/visibi01"},"void":{"audio":true,"file":"v/void0001"},"wearisome":{"audio":true,"file":"w/wearis01"},"whimsical":{"audio":true,"file":"w/whimsi01"},"wistfully":{"audio":true,"file":"w/wistfu02"},"answer":{"audio":true,"file":"a/answer01"},"autumn":{"audio":true,"file":"a/autumn01"},"beautiful":{"audio":true,"file":"b/beauti02"},"bicycle":{"audio":true,"file":"b/bicycl01"},"breakfast":{"audio":true,"file":"b/breakf01"},"busy":{"audio":true,"file":"b/busy0001"},"calendar":{"audio":true,"file":"c/calend01"},"captain":{"audio":true,"file":"c/captai01"},"castle":{"audio":true,"file":"c/castle01"},"delicious":{"audio":true,"file":"d/delici01"},"dinosaur":{"audio":true,"file":"d/dinosa01"},"doctor":{"audio":true,"file":"d/doctor01"},"elephant":{"audio":true,"file":"e/elepha01"},"engine":{"audio":true,"file":"e/engine01"},"enough":{"audio":true,"file":"e/enough01"},"favourite":{"audio":true,"file":"f/favori01"},"february":{"audio":true,"file":"f/februa02"},"fountain":{"audio":true,"file":"f/founta01"},"friend":{"audio":true,"file":"f/friend01"},"gentle":{"audio":true,"file":"g/gentle01"},"giraffe":{"audio":true,"file":"g/giraff01"},"guitar":{"audio":true,"file":"g/guitar01"},"height":{"audio":true,"file":"h/height01"},"honest":{"audio":true,"file":"h/honest01"},"hospital":{"audio":true,"file":"h/hospit04"},"important":{"audio":true,"file":"i/import06"},"insect":{"audio":true,"file":"i/insect01"},"jealous":{"audio":true,"file":"j/jealou01"},"juice":{"audio":true,"file":"j/juice001"},"jungle":{"audio":true,"file":"j/jungle01"},"kitchen":{"audio":true,"file":"k/kitche01"},"knowledge":{"audio":true,"file":"k/knowle01"},"ladder":{"audio":true,"file":"l/ladder01"},"lemonade":{"audio":true,"file":"l/lemona01"},"library":{"audio":true,"file":"l/librar04"},"marble":{"audio":true,"file":"m/marble01"},"mountain":{"audio":true,"file":"m/mounta01"},"neighbour":{"audio":true,"file":"n/neighb01"},"noodle":{"audio":true,"file":"n/noodle01"},"ocean":{"audio":true,"file":"o/ocean001"},"orange":{"audio":true,"file":"o/orange01"},"pencil":{"audio":true,"file":"p/pencel01"},"people":{"audio":true,"file":"p/people01"},"pirate":{"audio":true,"file":"p/pirate01"},"puddle":{"audio":true,"file":"p/puddle01"},"question":{"audio":true,"file":"q/questi01"},"quiet":{"audio":true,"file":"q/quiet001"},"rainbow":{"audio":true,"file":"r/rainbo01"},"rhythm":{"audio":true,"file":"r/rhythm01"},"sandwich":{"audio":true,"file":"s/sandwi01"},"scissors":{"audio":true,"file":"s/scisso03"},"squirrel":{"audio":true,"file":"s/squirr01"},"thirsty":{"audio":true,"file":"t/thirst03"},"thumb":{"audio":true,"file":"t/thumb001"},"tomorrow":{"audio":true,"file":"t/tomorr01"},"treasure":{"audio":true,"file":"t/treasu03"},"umbrella":{"audio":true,"file":"u/umbrel01"},"unicorn":{"audio":true,"file":"u/unicor01"},"vegetable":{"audio":true,"file":"v/vegeta01"},"village":{"audio":true,"file":"v/villag01"},"weather":{"audio":true,"file":"w/weathe01"},"wednesday":{"audio":true,"file":"w/wednes01"},"whistle":{"audio":true,"file":"w/whistl01"},"wrist":{"audio":true,"file":"w/wrist001"},"yesterday":{"audio":true,"file":"y/yester02"},"zebra":{"audio":true,"file":"z/zebra001"},"accommodate":{"audio":true,"file":"a/accomm01"},"acquaintance":{"audio":true,"file":"a/acquai02"},"ambiguous":{"audio":true,"file":"a/ambigu02"},"archipelago":{"audio":true,"file":"a/archip02"},"benevolent":{"audio":true,"file":"b/benevo02"},"bouquet":{"audio":true,"file":"b/bouque02"},"bureaucracy":{"audio":true,"file":"b/bureau03"},"camouflage":{"audio":true,"file":"c/camouf01"},"catastrophe":{"audio":true,"file":"c/catast01"},"connoisseur":{"audio":true,"file":"c/connoi01"},"conscientious":{"audio":true,"file":"c/consci03"},"cylinder":{"audio":true,"file":"c/cylind01"},"deterrent":{"audio":true,"file":"d/deterr03"},"dilemma":{"audio":true,"file":"d/dilemm01"},"embarrass":{"audio":true,"file":"e/embarr01"},"entrepreneur":{"audio":true,"file":"e/entrep02"},"equilibrium":{"audio":true,"file":"e/equili09"},"exhilarate":{"audio":true,"file":"e/exhila01"},"fahrenheit":{"audio":true,"file":"f/fahren01"},"fluorescent":{"audio":true,"file":"f/fluore04"},"gauge":{"audio":true,"file":"g/gauge001"},"guarantee":{"audio":true,"file":"g/guaran02"},"harass":{"audio":true,"file":"h/harass02"},"hemisphere":{"audio":true,"file":"h/hemisp01"},"hierarchy":{"audio":true,"file":"h/hierar07"},"hygiene":{"audio":true,"file":"h/hygien01"},"idiosyncrasy":{"audio":true,"file":"i/idiosy01"},"incandescent":{"audio":true,"file":"i/incand03"},"itinerary":{"audio":true,"file":"i/itiner03"},"jeopardy":{"audio":true,"file":"j/jeopar03"},"kaleidoscope":{"audio":true,"file":"k/kaleid01"},"labyrinth":{"audio":true,"file":"l/labyri01"},"liaison":{"audio":true,"file":"l/liaiso02"},"lieutenant":{"audio":true,"file":"l/lieute02"},"maneuver":{"audio":true,"file":"m/maneuv01"},"mediterranean":{"audio":true,"file":"m/medite01"},"metamorphosis":{"audio":true,"file":"m/metamo05"},"millennium":{"audio":true,"file":"m/millen08"},"mischievous":{"audio":true,"file":"m/mischi02"},"necessary":{"audio":true,"file":"n/necess02"},"nuisance":{"audio":true,"file":"n/nuisan01"},"occurrence":{"audio":true,"file":"o/occurr01"},"omniscient":{"audio":true,"file":"o/omnisc02"},"parliament":{"audio":true,"file":"p/parlia02"},"perseverance":{"audio":true,"file":"p/persev01"},"pharmaceutical":{"audio":true,"file":"p/pharma01"},"pneumonia":{"audio":true,"file":"p/pneumo09"},"pseudonym":{"audio":true,"file":"p/pseudo16"},"questionnaire":{"audio":true,"file":"q/questi06"},"recommend":{"audio":true,"file":"r/recomm01"},"reminiscent":{"audio":true,"file":"r/remini04"},"rendezvous":{"audio":true,"file":"r/rendez01"},"rhinoceros":{"audio":true,"file":"r/rhinoc01"},"ricochet":{"audio":true,"file":"r/ricoch01"},"silhouette":{"audio":true,"file":"s/silhou01"},"sovereign":{"audio":true,"file":"s/sovere01"},"surveillance":{"audio":true,"file":"s/survei02"},"symmetry":{"audio":true,"file":"s/symmet08"},"temperament":{"audio":true,"file":"t/temper06"},"thermometer":{"audio":true,"file":"t/thermo30"},"tranquil":{"audio":true,"file":"t/tranqu01"},"unanimous":{"audio":true,"file":"u/unanim02"},"vacuum":{"audio":true,"file":"v/vacuum02"},"vigilant":{"audio":true,"file":"v/vigila02"},"xylophone":{"audio":true,"file":"x/xyloph02"},"yacht":{"audio":true,"file":"y/yacht001"},"zealous":{"audio":true,"file":"z/zealou01"}};window.MW_REMOTE="https://media.merriam-webster.com/audio/prons/en/us/mp3/";</script>
+<script>
+/* ---------- Word lists: PSB 2026–27 official lists ---------- */
+const G3 = `Alpaca
+amends
+Apology
+Badger
+Ballad
+Barefoot
+Beginning
+Bleary
+Bonfire
+Braid
+Branch
+Bridge
+Briefcase
+Brought
+Bubbly
+Buffet
+Bungalow
+Bungee
+Cabbage
+Canoe
+Canteen
+Cantor
+Caramel
+Career
+Carefully
+Casino
+Catnap
+Cello
+Chapter
+Chatter
+Chute
+Cinderella
+Cleave
+Climate
+Climbed
+Cockles
+Colourful OR colorful
+Compass
+Conch
+Concrete
+Confused
+Convoy
+Corgi
+Cough
+Country
+Cranky
+creative
+Crumpet
+Curries
+Daughter
+Decade
+December
+Dicey
+Difficult
+Disease
+Divine
+Dribbles
+Drizzle
+Drowsy
+Earmark
+Eggplant
+Eighth
+Either
+Elderly
+Ellipse
+Emperor
+Endure
+Entreat
+Erase
+Erode
+Explode
+Extinct
+Exude
+Fallacy
+Families
+Famous
+Fanatic
+Farewell
+Feeble
+Ferret
+Figures
+Finish
+Fission
+Flight
+Flounder
+Flourish
+Flout
+Fluid
+Folate
+Followed
+Foosball
+Foozle
+Foreign
+Forfeit
+Fortune
+Forward
+Freckle
+friendship
+Frisket
+Frock
+Frown
+Furnace
+Gaggle
+Galley
+Gargle
+Garlic
+Genius
+Genteel
+Gizzard
+Gleaming
+Glimmer
+Glisten
+Glucose
+gnome
+Goofy
+googly
+Gossip
+Gotcha
+Graham
+Grapple
+Groom
+Groove
+grotto
+grout
+Gruel
+Haggle
+Hamlet
+Handle
+Handyman
+Hangar
+harness
+Hatchet
+Hazelnut
+Heavenly
+Heiress
+Heist
+Hijab
+Hoagies
+Hoax
+Honeybee
+Horizon
+Howler
+Hurriedly
+Hydra
+Hydrant
+Iceberg
+Ignite
+Inched
+Income
+Indigo
+Infant
+Infirm
+Instrument
+Island
+Isms
+Jammer
+January
+Jersey
+Jewel
+Journal
+Joyful
+Jumping
+Junior
+Kazoo
+Kennel
+Knight
+Knock
+Knoll
+Known
+Knuckle
+Kodak
+Kudos
+Lantern
+Laptop
+Laugh
+Laughter
+League
+Leaven
+Legacy
+Lettuce
+Liberty
+Limited
+Linen
+Liquid
+Livid
+Loosened
+Lotion
+Lounge
+Macaw
+magical
+Mambo
+Manacle
+Mandate
+Married
+Martial
+Massive
+Maybe
+Measly
+Meekness
+Meeting
+Melody
+Melted
+Members
+Memes
+Menial
+Merlin
+Middle
+Mince
+Mischief
+Misery
+Missive
+Mister
+Modem
+Modify
+Mogul
+Months
+Moped
+Mortal
+Musings
+Myself
+Napkin
+National
+Neigh
+Newbie
+Nibble
+Nominee
+Nourish
+Nozzles
+Nuggets
+Oasis
+Oblong
+Omega
+Onion
+Operation
+Opposite
+Ouster
+Owlishly
+Ozone
+Paisley
+Parley
+Partner
+Pastime
+Pastry
+Patience
+Pattern
+Peanut
+Pebbles
+Peddle
+Pending
+Penguin
+Percent
+Photograph
+Physical
+Physics
+Picture
+Pigeon
+Pisces
+Plastic
+Plover
+Pluck
+Ponytail
+Posters
+Potato
+Powerful
+Praise
+Prepare
+Princess
+Prism
+Privacy
+Proposal
+Proxy
+Publish
+Puckish
+Pulpit
+Pumpkin
+Punily
+Puritan
+Purple
+Putrid
+Puzzles
+Quack
+Quantify
+Quota
+Rabid
+Raisin
+Ratio
+Reaction
+Rebuff
+Recanted
+receive
+Record
+Recovery
+Reflect
+Reign
+Rely
+Relying
+Remember
+Rescue
+Respect
+Respite
+Restaurant
+Restive
+Retorts
+Retriever
+Returned
+Ribbon
+Rickshaw
+Riddle
+Riffraff
+Rocket
+Rooster
+Routine
+Rugby
+Rumor OR rumour
+Sadly
+Satchel
+satisfaction
+Scandal
+Scanty
+Scent
+Sci-fi
+Scoop
+Scooter
+Scorch
+Screen
+Scrooge
+Scullery
+Season
+secretly
+Semester
+Sequel
+Serious
+Shaggy
+Shalwar
+Shindig
+Shopping
+shorthand
+Shoulder
+Shrimp
+Simplify
+Sizzle
+Slither
+Slurry
+Smashed
+Snitch
+Software
+Sparkle
+Sparkly
+Spiteful
+Spoken
+Sprite
+Square
+Stable
+Stance
+Standee
+Sterling
+Sticky
+Stirring
+Strands
+Stretching
+Stubble
+Subject
+Suffer
+Suggest
+Summer
+Surly
+Surrounding
+Sword
+Talent
+Tango
+Tawny
+telephone
+Thousand
+Thrift
+Tighten
+Timber
+Towel
+Treatment
+Trifle
+Troll
+Truffle
+Tubers
+Turtle
+Twilight
+Unfurl
+Upset
+upsetting
+Usher
+Vault
+Version
+Victory
+Wattage
+Wealthy
+Wheedle
+Whereas
+Whey
+Wince
+Worse`;
+
+const G5 = `Aboriginal
+Abrogate
+acquire
+Adapting
+Addendum
+Adjudicate
+Administration
+Admonition
+Advection
+Adversaria
+Aerospace
+Affirmation
+Agoraphobia
+Agricultural
+Ailment
+Aircraft
+Alacrity
+Algae
+Allegiance
+Allotted
+Allowance
+ambition
+anchor
+Annihilate
+Anthropology
+Antiquarian
+apparently
+Appellation
+Appetite
+Applicable
+Appointed
+Appraisal
+Apprehensive
+Approached
+Arduous
+Arithmetic
+Armadillo
+Assistance
+Astounding
+Atonement
+atrophy
+Audience
+Autographs
+Automated
+Avalanche
+Aviation
+avocados
+Axiomatic
+Bachelor
+Bachelorette
+Backgammon
+Balloonist
+Bandicoot
+Baptismal
+Beatific
+Bedraggled
+believing
+Bemused
+Blistering
+Blockbuster
+bonanza
+Buffoonery
+Bulbous
+Bulletin
+Buzzworthy
+Calibrate
+Calisthenics
+Campaign
+Cannonade
+Capitalist
+Captivated
+capture
+Carpenter
+Carrier
+Casserole
+Cathedral
+Centuries
+Ceramics
+Ceremony
+Certain
+Channel
+Charioteer
+Charitable
+Charred
+Chimney
+Choreographer
+Chronic
+Cinnamon
+clarion
+Coalition
+cobalt
+collude
+Colonists
+Combination
+Comedienne
+commercial
+Committee
+Commotion
+Communities
+Compact
+Comparison
+Comprehend
+Concentrate
+Concise
+Condiments
+Confection
+Consequent
+Consideration
+Constellation
+contemplated
+Continental
+continuous
+Contraction
+Convocation
+cookie-cutter
+Corporate
+Coverage
+Crises
+crucial
+Cultural
+curie
+curtail
+Decrepitude
+Defensiveness
+Definition
+Deportment
+descent
+Despite
+Diaphanous
+dietary
+Differed
+Diligent
+Diminished
+Discussion
+Disembark
+Disengage
+Disinfectant
+Dissipate
+Dissolved
+Distressed
+Disturbance
+Doppler
+Duodenum
+Ecstatic
+Edification
+Educational
+Effectively
+Effusive
+Elaborative
+Elicitation
+Eligibility
+Emancipator
+Endorphin
+Energetic
+entertainment
+Equation
+Equator
+Equestrian
+Esteem
+Exhibits
+Exoneration
+expansion
+Expensive
+Expiration
+Exploits
+Exterior
+Extraordinaire
+Extremely
+Façade
+Facilities
+Fascinator
+Fearsome
+Felonious
+Fiercest
+Filial
+Financier
+Flexitarian
+Flipperling
+Fluoride
+Foolishness
+Fortification
+fractions
+frustration
+Fundamental
+Furrow
+Gadgets
+Gardenesque
+Garland
+Gendered
+generosity
+Genus
+Geometry
+glossary
+Gnarled
+Gratingly
+Griefful
+Hallowed
+Handiwork
+Heralded
+Herbaceous
+Heredity
+Hexagonal
+Hiatus
+hilarity
+hitchhiking
+Hoarsely
+Honorific
+humdrum
+Immediately
+Impacted
+Importunate
+imposing
+Improvise
+Indefatigable
+Industrial
+inflicted
+Infraction
+Infuriating
+Innovator
+inspiring
+Instantaneous
+Insubstantial
+Intensify
+Interlocutor
+Internally
+Inundate
+invasive
+Invertebrate
+Investigation
+Juncture
+Kerchief
+leotard
+Levied
+liturgy
+logical
+Macrobiotics
+Macrocosm
+Madrigal
+Maidenhair
+manure
+Marionette
+Maternity
+Memorial
+Merchandise
+mercury
+Messenger
+Michigander
+Microscope
+Microwave
+ministry
+Misconception
+Momentous
+Multiplication
+Museum
+Musician
+mystical
+Naturalist
+Nausea
+naysayers
+Nebulous
+Neglected
+Nervous
+Nonconformist
+Obliterate
+Oblivious
+Obstacles
+Obvious
+octopus
+Odiferous
+Oligarchy
+Olympiad
+Omnibus
+Onerous
+Opponent
+Orchestra
+Organelle
+Organist
+Oxygenate
+Paginate
+Palliative
+palmate
+Panama
+Parkour
+pastrami
+Pavement
+Peculiar
+Perfection
+Perimeter
+Permafrost
+Perpetual
+Personnel
+Petrifying
+Phalanges
+Pharaoh
+Pharmacy
+Plaiting
+Planetarium
+Platitude
+Practically
+Precursor
+Premonition
+previous
+Primitive
+Principality
+Quashed
+Quaver
+Quizzical
+Ramparts
+Reasonable
+Receptions
+Rectitude
+Recuperation
+Redemption
+Referendum
+Reiterate
+Remarkable
+Repository
+Reprieve
+resemble
+Residence
+Revulsive
+Riviera
+Roundabout
+Salubrious
+Salvation
+Sanitized
+Scattering
+Scavenger
+Scenery
+Scornfully
+Scorpion
+Scoundrel
+Scrambling
+Scripture
+Sediment
+Segregation
+Seismologist
+septum
+serval
+sheaves
+Shepherd
+Shortage
+Slobbery
+Sophisticated
+Sparsely
+Specificity
+Specimen
+Spectacles
+squabble
+Squander
+Staggered
+Starvation
+steeve
+Subdivision
+subdued
+substance
+successive
+Superlative
+Surmised
+Surrogate
+swale
+Syringe
+Tapestry
+tariff
+taxidermy
+teamwork
+Testament
+Theatre
+thermostat
+Throttle
+Tightrope
+Tortoise
+Tributary
+Turbulent
+Ugliness
+Unappealing
+Undercroft
+undertake
+Undesirable
+unexpectedly
+Unhindered
+unique
+universal
+Valorous
+Vegetation
+Vineyard
+Visibility
+Vlogging
+Void
+Wearisome
+Whimsical
+Wistfully`;
+
+/* Stand-ins for the PSB "hidden list": grade-level words that are NOT on the official list. */
+const H3 = `Answer
+Autumn
+Beautiful
+Bicycle
+Breakfast
+Busy
+Calendar
+Captain
+Castle
+Delicious
+Dinosaur
+Doctor
+Elephant
+Engine
+Enough
+Favourite OR favorite
+February
+Fountain
+Friend
+Gentle
+Giraffe
+Guitar
+Height
+Honest
+Hospital
+Important
+Insect
+Jealous
+Juice
+Jungle
+Kitchen
+Knowledge
+Ladder
+Lemonade
+Library
+Marble
+Mountain
+Neighbour OR neighbor
+Noodle
+Ocean
+Orange
+Pencil
+People
+Pirate
+Puddle
+Question
+Quiet
+Rainbow
+Rhythm
+Sandwich
+Scissors
+Squirrel
+Thirsty
+Thumb
+Tomorrow
+Treasure
+Umbrella
+Unicorn
+Vegetable
+Village
+Weather
+Wednesday
+Whistle
+Wrist
+Yesterday
+Zebra`;
+
+const H5 = `Accommodate
+Acquaintance
+Ambiguous
+Archipelago
+Benevolent
+Bouquet
+Bureaucracy
+Camouflage
+Catastrophe
+Connoisseur
+Conscientious
+Cylinder
+Deterrent
+Dilemma
+Embarrass
+Entrepreneur
+Equilibrium
+Exhilarate
+Fahrenheit
+Fluorescent
+Gauge
+Guarantee
+Harass
+Hemisphere
+Hierarchy
+Hygiene
+Idiosyncrasy
+Incandescent
+Itinerary
+Jeopardy
+Kaleidoscope
+Labyrinth
+Liaison
+Lieutenant
+Maneuver OR manoeuvre
+Mediterranean
+Metamorphosis
+Millennium
+Mischievous
+Necessary
+Nuisance
+Occurrence
+Omniscient
+Parliament
+Perseverance
+Pharmaceutical
+Pneumonia
+Pseudonym
+Questionnaire
+Recommend
+Reminiscent
+Rendezvous
+Rhinoceros
+Ricochet
+Silhouette
+Sovereign
+Surveillance
+Symmetry
+Temperament
+Thermometer
+Tranquil
+Unanimous
+Vacuum
+Vigilant
+Xylophone
+Yacht
+Zealous`;
+
+/* British and American spellings are both accepted (Procedural Rule 15). */
+const EXTRA = {theatre:['theater'], sanitized:['sanitised'], 'façade':['facade']};
+const PROPER = new Set(['cinderella','december','january','february','wednesday','kodak','merlin','pisces','scrooge','doppler','michigander','panama','olympiad','riviera','mediterranean','fahrenheit','parliament']);
+
+/* Short meanings for words that sound like other words, or that kids rarely meet. */
+const HINTS = {
+  peddle:'To sell things, going from place to place. (Not "pedal" on a bike.)',
+  hangar:'A big building where aeroplanes are kept. (Not a clothes "hanger".)',
+  martial:'To do with fighting or war, as in martial arts. (Not "marshal".)',
+  reign:'The time when a king or queen rules. (Not "rain" or "rein".)',
+  whey:'The watery part of milk left over when cheese is made. (Not "way".)',
+  neigh:'The sound a horse makes. (Not "nay".)',
+  scent:'A smell, usually a pleasant one. (Not "cent" or "sent".)',
+  knight:'A soldier in armour from long ago. (Not "night".)',
+  known:'Past form of "know": something people know about.',
+  chute:'A slide or tube that things go down. (Not "shoot".)',
+  mince:'To chop food into very small pieces. (Not "mints".)',
+  knoll:'A small round hill.',
+  cantor:'A person who leads singing in a place of worship. (Not "canter".)',
+  isms:'Beliefs or ideas, like words ending in -ism.',
+  folate:'A B vitamin found in green leafy vegetables.',
+  foozle:'To do something clumsily; a clumsy mistake.',
+  frisket:'A cover that protects part of a picture while painting.',
+  plover:'A kind of bird that lives near the shore.',
+  missive:'A letter or written message.',
+  leaven:'Something, like yeast, that makes dough rise.',
+  hoagies:'Long sandwiches filled with meat, cheese and salad.',
+  standee:'A cardboard cut-out that stands up on its own.',
+  jammer:'A device that blocks radio signals.',
+  galley:'The kitchen on a ship or aeroplane.',
+  descent:'Going downward. (Not "dissent".)',
+  curie:'A unit for measuring radioactivity, named after Marie Curie.',
+  steeve:'A long pole on a ship used for packing cargo; to raise at an angle.',
+  serval:'A wild African cat with long legs and big ears.',
+  swale:'A low, wet stretch of land.',
+  sheaves:'Bundles of grain stalks (more than one sheaf).',
+  crises:'More than one crisis.',
+  hallowed:'Holy, or greatly respected. (Not "hollowed".)',
+  quaver:'To shake or tremble, said of a voice; also a short musical note.',
+  genus:'A group of closely related living things.',
+  phalanges:'The bones of the fingers and toes.',
+  adversaria:'A collection of notes or comments.',
+  advection:'Sideways movement of heat or moisture by moving air or water.',
+  kerchief:'A square of cloth worn on the head or around the neck.',
+  palmate:'Shaped like an open hand, as some leaves are.',
+  septum:'A thin wall dividing two parts, like the one inside your nose.',
+  clarion:'Loud and clear, like a trumpet call.',
+  liturgy:'A fixed form of public worship.',
+  madrigal:'A song for several voices with no instruments.',
+  undercroft:'An underground room, often under a church.',
+  gardenesque:'In the style of a garden.',
+  fascinator:'A small decorative headpiece worn at weddings and races.',
+  michigander:'A person from the US state of Michigan.',
+  doppler:'Doppler effect: a sound changing pitch as it moves past you.',
+  levied:'Charged a tax or fine.',
+  plaiting:'Braiding hair or rope.',
+  organelle:'A tiny part inside a living cell.',
+  griefful:'Full of grief; very sad.',
+  flipperling:'A young animal with flippers.',
+  odiferous:'Giving off a smell.',
+  revulsive:'Causing disgust.',
+  sterling:'British money; also excellent.',
+  personnel:'The people who work for an organisation. (Not "personal".)',
+  certain:'Completely sure.',
+};
+
+function parse(text, src){
+  return text.trim().split('\n').map(l=>l.trim()).filter(Boolean).map(l=>{
+    const parts = l.split(/\s+OR\s+/i).map(p=>p.trim().toLowerCase());
+    const key = parts[0];
+    const answers = [...new Set([...parts, ...(EXTRA[key]||[])])];
+    const word = PROPER.has(key) ? key[0].toUpperCase()+key.slice(1) : key;
+    return {key, word, answers, alts: answers.slice(1), src};
+  });
+}
+const WORDS = {
+  3:{official:parse(G3,'official'), hidden:parse(H3,'hidden')},
+  5:{official:parse(G5,'official'), hidden:parse(H5,'hidden')},
+};
+
+/* ---------- State ---------- */
+const STORE = 'beeready-v1';
+function fresh(){
+  return {profiles:[
+    {id:'p3',name:'Grade 3 speller',grade:3,stats:{},mocks:[]},
+    {id:'p5',name:'Grade 5 speller',grade:5,stats:{},mocks:[]},
+  ], active:'p3', settings:{accent:'en-GB', rate:0.85, voice:'mw', pSet:'smart', pSize:10, pMode:'type', mMode:'judge'}};
+}
+let S;
+try { S = JSON.parse(localStorage.getItem(STORE)); } catch(e){}
+if(!S || !Array.isArray(S.profiles) || !S.profiles.length) S = fresh();
+S.settings = Object.assign(fresh().settings, S.settings||{});
+function save(){ try{ localStorage.setItem(STORE, JSON.stringify(S)); }catch(e){} }
+const prof = () => S.profiles.find(p=>p.id===S.active) || S.profiles[0];
+
+function status(p, key){
+  const s = p.stats[key];
+  if(!s) return 'new';
+  if(s.streak>=2) return 'mastered';
+  if(s.w>0) return 'tricky';
+  return 'learning';
+}
+function record(key, ok){
+  const p = prof();
+  const s = p.stats[key] || {c:0,w:0,streak:0};
+  if(ok){ s.c++; s.streak++; } else { s.w++; s.streak=0; }
+  p.stats[key] = s; save();
+}
+
+/* ---------- Helpers ---------- */
+const $ = s => document.querySelector(s);
+const esc = s => String(s).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const shuffle = a => { a=[...a]; for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];} return a; };
+const norm = s => s.normalize('NFC').toLowerCase().replace(/[’‘]/g,"'").replace(/\s+/g,' ').trim();
+const isRight = (w, attempt) => w.answers.includes(norm(attempt));
+const tiles = (word, cls='') => `<div class="tiles ${cls}">${[...word].map(ch=>`<span class="hex${ch===' '||ch==='-'?' blank':''}">${esc(ch)}</span>`).join('')}</div>`;
+const showWord = w => w.alts.length ? `${w.word} <span class="muted">(or ${w.alts.join(', ')})</span>` : w.word;
+const mwLink = w => `https://www.merriam-webster.com/dictionary/${encodeURIComponent(w.key)}`;
+
+/* Letters of the correct word that the attempt missed, via longest common subsequence. */
+function missMarks(correct, attempt){
+  const a=[...correct], b=[...norm(attempt)], n=a.length, m=b.length;
+  const L=Array.from({length:n+1},()=>new Array(m+1).fill(0));
+  for(let i=n-1;i>=0;i--) for(let j=m-1;j>=0;j--) L[i][j]= a[i]===b[j] ? L[i+1][j+1]+1 : Math.max(L[i+1][j],L[i][j+1]);
+  const keep=new Array(n).fill(false); let i=0,j=0;
+  while(i<n&&j<m){ if(a[i]===b[j]){keep[i]=true;i++;j++;} else if(L[i+1][j]>=L[i][j+1]) i++; else j++; }
+  return `<div class="tiles">${a.map((ch,k)=>`<span class="hex ${keep[k]?'':'miss'}">${esc(ch)}</span>`).join('')}</div>`;
+}
+
+/* ---------- Voice and sound ---------- */
+function pickVoice(){
+  if(!('speechSynthesis' in window)) return null;
+  const vs = speechSynthesis.getVoices();
+  let c = vs.filter(v=>v.lang.replace('_','-').startsWith(S.settings.accent));
+  if(!c.length) c = vs.filter(v=>v.lang.startsWith('en'));
+  return c.find(v=>/Google|Enhanced|Premium|Daniel|Serena|Samantha|Karen|Moira/i.test(v.name)) || c[0] || null;
+}
+if('speechSynthesis' in window) speechSynthesis.onvoiceschanged = ()=>{};
+function speak(text, slow){
+  if(!('speechSynthesis' in window)) return;
+  speechSynthesis.cancel();
+  const u = new SpeechSynthesisUtterance(text);
+  const v = pickVoice(); if(v){u.voice=v; u.lang=v.lang;} else u.lang=S.settings.accent;
+  u.rate = slow ? 0.55 : S.settings.rate;
+  speechSynthesis.speak(u);
+}
+let actx;
+function tone(freq, dur, times=1){
+  try{
+    actx = actx || new (window.AudioContext||window.webkitAudioContext)();
+    for(let i=0;i<times;i++){
+      const o=actx.createOscillator(), g=actx.createGain(), t=actx.currentTime+i*(dur+0.1);
+      o.type='sine'; o.frequency.value=freq;
+      g.gain.setValueAtTime(0.0001,t); g.gain.exponentialRampToValueAtTime(0.3,t+0.02); g.gain.exponentialRampToValueAtTime(0.0001,t+dur);
+      o.connect(g).connect(actx.destination); o.start(t); o.stop(t+dur+0.05);
+    }
+  }catch(e){}
+}
+/* Merriam-Webster recordings and meanings, injected by tools/build.py */
+const MW = window.MW_DATA || {};
+const MW_AUDIO = window.MW_AUDIO || null;          // data URIs (claude.ai build)
+const AUDIO_BASE = window.MW_AUDIO_BASE || null;   // audio folder (Mac and Windows builds)
+const MW_REMOTE = window.MW_REMOTE || null;         // Merriam-Webster's own audio server (GitHub build)
+const hasMW = key => !!(MW[key] && MW[key].audio && (MW_AUDIO ? MW_AUDIO[key] : MW_REMOTE ? MW[key].file : AUDIO_BASE));
+const audioSrc = key => MW_AUDIO ? MW_AUDIO[key] : MW_REMOTE ? MW_REMOTE+MW[key].file+'.mp3' : AUDIO_BASE+encodeURIComponent(key)+'.mp3';
+let player = null;
+function sayWord(key, slow){
+  if(S.settings.voice!=='mw' || !hasMW(key)) return speak(key, slow);
+  if('speechSynthesis' in window) speechSynthesis.cancel();
+  if(player) player.pause();
+  player = new Audio(audioSrc(key));
+  player.playbackRate = slow ? 0.7 : 1; player.preservesPitch = true;
+  player.play().catch(()=>speak(key, slow));
+}
+/* Hide the word (and words built on it) so the meaning doesn't give away the spelling. */
+const plain = t => t.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z]/g,'');
+function maskWord(text, answers){
+  const stems = answers.map(plain).map(k=>k.length<=4 ? k : k.slice(0, Math.max(4, k.length-3)));
+  return text.replace(/[A-Za-zÀ-ÿ'’-]+/g, t=>{ const l=plain(t); return l && stems.some(st=>l.startsWith(st)) ? '_____' : t; });
+}
+function meaningHtml(w){
+  const m = MW[w.key] || {}, hint = HINTS[w.key], out = [];
+  if(m.def) out.push(`<p>${m.pos?`<i class="muted">${esc(m.pos)}</i> · `:''}${esc(maskWord(m.def, w.answers))}</p>`);
+  if(m.ex) out.push(`<p class="muted">Example: “${esc(maskWord(m.ex, w.answers))}”</p>`);
+  if(hint) out.push(`<p>${esc(maskWord(hint, w.answers))}</p>`);
+  if(!out.length) out.push(`<p class="muted">${MW_REMOTE?'Open Merriam-Webster to read the meaning.':'No meaning saved for this word.'}</p>`);
+  out.push(`<div class="row">${m.def?`<button class="btn alt" data-act="readMeaning" data-k="${esc(w.key)}">Read it aloud</button>`:''}<a href="${mwLink(w)}" target="_blank" rel="noopener">Open in Merriam-Webster</a></div>`);
+  return out.join('');
+}
+function readMeaning(key){
+  const m = MW[key] || {};
+  speak((m.def||HINTS[key]||'') + (m.ex ? '. For example: ' + m.ex : ''));
+}
+
+/* ---------- Listening (Mac build only; claude.ai blocks the microphone) ---------- */
+const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+let embedded = true; try { embedded = window.top !== window; } catch(e){}
+const canListen = !!SR && !embedded;
+const LETTER = {a:'a',ay:'a',eh:'a',b:'b',be:'b',bee:'b',c:'c',see:'c',sea:'c',si:'c',cee:'c',d:'d',dee:'d',e:'e',f:'f',ef:'f',eff:'f',g:'g',gee:'g',ji:'g',h:'h',aitch:'h',haitch:'h',i:'i',eye:'i',aye:'i',j:'j',jay:'j',k:'k',kay:'k',l:'l',el:'l',ell:'l',m:'m',em:'m',n:'n',en:'n',o:'o',oh:'o',owe:'o',p:'p',pee:'p',pea:'p',q:'q',queue:'q',cue:'q',r:'r',are:'r',ar:'r',s:'s',es:'s',ess:'s',t:'t',tea:'t',tee:'t',u:'u',you:'u',yu:'u',v:'v',vee:'v',w:'w',x:'x',ex:'x',y:'y',why:'y',wye:'y',z:'z',zed:'z',zee:'z',hyphen:'-',dash:'-'};
+const FILLERS = new Set(['um','umm','uh','uhh','uhm','ah','ahh','er','erm','hmm','mm']);
+/* Turn "Bridge B R I D G E Bridge" into a spelling plus Say–SPELL–Say checks. */
+function heardItems(text){
+  const toks = [];
+  text.toLowerCase().replace(/[.,!?;:"“”]/g,' ').split(/\s+/).filter(Boolean).forEach(t=>{
+    if(/^([a-z]-)+[a-z]$/.test(t)) toks.push(...t.split('-')); else toks.push(t.replace(/['’]s$/,''));
+  });
+  const items = [];
+  for(let i=0;i<toks.length;i++){
+    const t = toks[i];
+    if(t==='double' && i+1<toks.length){
+      const nx = toks[i+1];
+      if(nx==='u'||nx==='you'){ items.push({t:'double u', l:'w'}); i++; continue; }
+      const L = LETTER[nx] || (/^[a-z]$/.test(nx)?nx:null);
+      if(L){ items.push({t:'double '+nx, l:L+L}); i++; continue; }
+    }
+    items.push({t, l: LETTER[t] || (/^[a-z]$/.test(t)?t:null), filler: FILLERS.has(t)});
+  }
+  return items;
+}
+/* What to show on screen: letters only, never the spoken word (it would give the spelling away). */
+function displayHeard(text, answers){
+  const items = heardItems(text);
+  const idx = items.map((x,i)=>x.l?i:-1).filter(i=>i>=0);
+  const fi = idx.length ? idx[0] : Infinity, li = idx.length ? idx[idx.length-1] : -1;
+  return items.map((x,i)=>{
+    if(x.l) return x.l.toUpperCase().split('').join(' ');
+    if(x.filler) return x.t;
+    if(i>fi && i<li){ const m = maskWord(x.t, answers); return m.includes('_____') ? '(word)' : m; }
+    return '(word)';
+  }).join(' ').replace(/(\(word\) )+\(word\)/g, '(word)');
+}
+const listenAnswers = () => view==='mock' ? curWord().answers : P.q[P.i].answers;
+function parseHeard(text){
+  const items = heardItems(text);
+  const idx = items.map((x,i)=>x.l?i:-1).filter(i=>i>=0);
+  if(idx.length<2) return {text, letters:'', noLetters:true};
+  const fi = idx[0], li = idx[idx.length-1];
+  const before = items.slice(0,fi).filter(x=>!x.filler).map(x=>x.t);
+  const after = items.slice(li+1).filter(x=>!x.filler).map(x=>x.t);
+  let mid = items.slice(fi, li+1);
+  // Restarting with the word again (allowed before the last letter) starts a new attempt.
+  const said = new Set(before);
+  let cut = -1; mid.forEach((x,i)=>{ if(!x.l && said.has(x.t)) cut = i; });
+  const restarted = cut>=0;
+  if(restarted) mid = mid.slice(cut+1);
+  const letters = mid.filter(x=>x.l).map(x=>x.l).join('');
+  const extra = mid.filter(x=>!x.l && !x.filler).map(x=>x.t);
+  const fillers = items.slice(fi, li+1).filter(x=>x.filler).map(x=>x.t);
+  return {text, letters, saidFirst:before.length>0, saidLast:after.length>0, extra, fillers, restarted,
+    procOk: before.length>0 && after.length>0 && !extra.length && !fillers.length};
+}
+let L = null;
+function startListening(onDone){
+  stopListening(true);
+  if('speechSynthesis' in window) speechSynthesis.cancel();
+  if(player) player.pause();
+  const rec = new SR();
+  rec.lang = S.settings.accent; rec.continuous = true; rec.interimResults = true;
+  L = {rec, fin:'', live:'', onDone, done:false, silence:null, error:null};
+  rec.onresult = e=>{
+    let fin='', live='';
+    for(let i=0;i<e.results.length;i++){ const r=e.results[i]; if(r.isFinal) fin+=r[0].transcript+' '; else live+=r[0].transcript+' '; }
+    L.fin=fin; L.live=live;
+    const h=$('#heard'); if(h) h.textContent=displayHeard((fin+live).trim(), listenAnswers());
+    clearTimeout(L.silence); L.silence=setTimeout(()=>{ try{rec.stop();}catch(e){} }, 4000);
+  };
+  rec.onerror = e=>{ if(L) L.error=e.error; };
+  rec.onend = finishListening;
+  try { rec.start(); } catch(e){ L=null; onDone('', 'start-failed'); return; }
+  micUI(true);
+}
+function stopListening(discard){
+  if(!L) return;
+  if(discard){ L.done=true; clearTimeout(L.silence); try{L.rec.abort();}catch(e){} L=null; return; }
+  try{ L.rec.stop(); }catch(e){}
+}
+function finishListening(){
+  if(!L || L.done) return;
+  L.done=true; clearTimeout(L.silence);
+  const text=(L.fin+' '+L.live).trim(), cb=L.onDone, err=L.error;
+  L=null; micUI(false); cb(text, err);
+}
+function micUI(on){
+  const b=$('#micbtn'); if(!b) return;
+  b.classList.toggle('on', on);
+  b.innerHTML = on ? `${MIC}I'm done` : `${MIC}Start spelling`;
+  b.dataset.act = on ? 'micStop' : 'micStart';
+}
+function micError(err){
+  if(err==='not-allowed'||err==='service-not-allowed') return 'The microphone is blocked. Allow it for this page in the browser (the icon in the address bar). In Safari, also turn on Dictation in System Settings → Keyboard.';
+  if(err==='network') return 'Chrome needs an internet connection to recognise speech.';
+  if(err==='audio-capture') return 'No microphone was found.';
+  return 'I didn\'t hear anything. Tap "Start spelling" and speak clearly, with a short pause between letters.';
+}
+function listenPanel(){
+  return `<div class="listen center">
+    <button class="btn big mic" id="micbtn" data-act="micStart">${MIC}Start spelling</button>
+    <div class="heard" id="heard" aria-live="polite">Say the word, spell it, say it again.</div>
+  </div>`;
+}
+function heardHtml(r, w){
+  const c = (ok, label) => `<li class="${ok?'yes':'no'}"><span>${ok?'✓':'✗'}</span>${label}</li>`;
+  if(r.noLetters) return `<div class="note bad">I heard “${esc(r.text?displayHeard(r.text, w.answers):'nothing')}” but no separate letters. Spell slowly, with a short pause between letters.</div>`;
+  return `<div class="note"><span class="eyebrow">I heard</span><p style="font-family:var(--f-letter)">${esc(displayHeard(r.text, w.answers))}</p></div>
+  <ul class="checks">
+    ${c(r.saidFirst,'Said the word first')}
+    ${c(!r.extra.length,'Spelled letter by letter'+(r.extra.length?` (also heard “${esc(maskWord(r.extra.join(' '), w.answers).replace(/_____/g,'(word)'))}”)`:''))}
+    ${c(r.saidLast,'Said the word again at the end')}
+    ${r.fillers.length?c(false,`Filler sounds: ${esc(r.fillers.join(', '))}`):''}
+    ${c(w.answers.includes(r.letters), `Spelling: <b style="font-family:var(--f-letter)">${esc(r.letters.toUpperCase().split('').join(' '))}</b>`)}
+  </ul>`;
+}
+const LISTEN_NOTE = 'Listening needs Chrome or Edge, with the app opened by double-clicking “Start Bee Ready” in its folder. The claude.ai page can’t use the microphone.';
+const MIC = `<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><rect x="9" y="2" width="6" height="12" rx="3" fill="currentColor"/><path d="M5 11a7 7 0 0 0 14 0M12 18v4"/></svg>`;
+
+const SPEAKER = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path fill="currentColor" d="M11 5 6 9H2v6h4l5 4V5z"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/><path d="M19 5a10 10 0 0 1 0 14"/></svg>`;
+
+/* ---------- Router ---------- */
+let view = 'home';
+let P = null; // practice session
+let M = null; // mock session
+function go(v){ view=v; stopTimer(); stopListening(true); render(); window.scrollTo(0,0); }
+function render(){
+  renderWho();
+  const fn = {home:vHome, pSetup:vPracticeSetup, practice:vPractice, pDone:vPracticeDone, mSetup:vMockSetup, mock:vMock, mRound:vMockRound, mFinal:vMockFinal, bank:vBank, speller:vSpeller}[view] || vHome;
+  $('#app').innerHTML = fn();
+  const inp = $('#spell'); if(inp) inp.focus();
+}
+function renderWho(){
+  const busy = view==='practice' || view==='mock';
+  $('#who').innerHTML = S.profiles.map(p=>`<button class="chip" data-act="who" data-id="${p.id}" aria-pressed="${p.id===S.active}" ${busy?'disabled':''}>${esc(p.name)} · G${p.grade}</button>`).join('');
+}
+
+const backBar = () => `<div class="topnav"><button class="btn ghost back" data-act="home">← Home</button></div>`;
+
+/* ---------- Home ---------- */
+function vHome(){
+  const p = prof(), list = WORDS[p.grade].official;
+  const c = {new:0,learning:0,tricky:0,mastered:0};
+  list.forEach(w=>c[status(p,w.key)]++);
+  const pct = k => (c[k]/list.length*100).toFixed(2)+'%';
+  const best = p.mocks.length ? Math.max(...p.mocks.map(m=>m.total)) : null;
+  return `
+  <section class="hero">
+    <span class="eyebrow">Pakistan Spelling Bee 2026–27 · Grade ${p.grade}</span>
+    <h1>Hi, ${esc(p.name)}</h1>
+    ${tiles('spell','pop')}
+    <p class="muted">${list.length} official words to learn. Say it, spell it, say it again.</p>
+  </section>
+  <section class="panel">
+    <div class="row spread"><h3>Word progress</h3><span class="muted" style="font-variant-numeric:tabular-nums">${c.mastered} of ${list.length} mastered</span></div>
+    <div class="meter" role="img" aria-label="${c.mastered} mastered, ${c.learning} learning, ${c.tricky} tricky, ${c.new} new">
+      <i style="width:${pct('mastered')};background:var(--good)"></i><i style="width:${pct('learning')};background:var(--honey)"></i><i style="width:${pct('tricky')};background:var(--bad)"></i>
+    </div>
+    <div class="legend">
+      <span><span class="dot" style="background:var(--good)"></span>Mastered <b>${c.mastered}</b></span>
+      <span><span class="dot" style="background:var(--honey)"></span>Learning <b>${c.learning}</b></span>
+      <span><span class="dot" style="background:var(--bad)"></span>Tricky <b>${c.tricky}</b></span>
+      <span><span class="dot" style="background:var(--line)"></span>Not tried <b>${c.new}</b></span>
+    </div>
+    <p class="muted" style="font-size:.9rem">A word counts as mastered after two correct spellings in a row.</p>
+  </section>
+  <section class="grid3">
+    <button class="action" data-act="pSetup"><h3><span class="hex">p</span>Practice</h3><p>Hear a word, spell it, and learn from mistakes. Tricky words come back first.</p></button>
+    <button class="action" data-act="mSetup"><h3><span class="hex">m</span>Mock bee</h3><p>Rounds 1–3 with the 40-second timer, hidden words and real PSB scoring.</p></button>
+    <button class="action" data-act="bank"><h3><span class="hex">w</span>Word bank</h3><p>Every word on the list. Tap one to hear it.</p></button>
+  </section>
+  <section class="panel">
+    <div class="row spread"><h3>Mock bee results</h3>${best!==null?`<span class="pill good">Best total ${best}</span>`:''}</div>
+    ${p.mocks.length ? `<ul class="hist">${p.mocks.slice(-6).reverse().map(m=>`<li><span>${new Date(m.date).toLocaleDateString(undefined,{day:'numeric',month:'short'})} · ${m.mode==='judge'?'Judged':'Typed'}</span><span style="font-variant-numeric:tabular-nums">Rounds ${m.rounds.join(' / ')} · <b>Total ${m.total}</b> ${m.qualified?'<span class="pill good">Reached Round 3</span>':'<span class="pill">Stopped at Round 2</span>'}</span></li>`).join('')}</ul>`
+      : `<p class="muted">No mock bees yet. Your first one will show here with its round scores.</p>`}
+  </section>
+  <section class="panel">
+    <h3>Settings</h3>
+    <div class="row" style="gap:18px;align-items:flex-end">
+      <label class="f" for="voice">Pronunciation
+        <select id="voice" data-change="voice">
+          <option value="mw" ${S.settings.voice==='mw'?'selected':''}>Merriam-Webster recordings</option>
+          <option value="tts" ${S.settings.voice==='tts'?'selected':''}>Device voice</option>
+        </select></label>
+      <label class="f" for="accent">Device voice and listening accent
+        <select id="accent" data-change="accent">
+          <option value="en-GB" ${S.settings.accent==='en-GB'?'selected':''}>British</option>
+          <option value="en-US" ${S.settings.accent==='en-US'?'selected':''}>American</option>
+          <option value="en-IN" ${S.settings.accent==='en-IN'?'selected':''}>Indian English</option>
+        </select></label>
+      <label class="f" for="rate">Speaking speed
+        <select id="rate" data-change="rate">
+          ${[[0.7,'Slow'],[0.85,'Normal'],[1,'Quick']].map(([v,l])=>`<option value="${v}" ${S.settings.rate==v?'selected':''}>${l}</option>`).join('')}
+        </select></label>
+      <button class="btn alt" data-act="say" data-text="${esc(WORDS[p.grade].official[0].key)}">Test voice</button>
+      <button class="btn ghost" data-act="speller">Spellers</button>
+    </div>
+    <p class="credit">${MW_REMOTE?`Recordings are played from Merriam-Webster’s website, so this copy needs internet. Words without a recording use the device voice.`:Object.keys(MW).length?`Recordings, meanings and example sentences from Merriam-Webster’s Collegiate® Dictionary. Words without a recording use the device voice.`:'Merriam-Webster recordings are not included in this copy, so the device voice is used.'} ${canListen?'Listening is on in this copy.':'Listening works when the app is opened with “Start Bee Ready” in Chrome or Edge.'}</p>
+  </section>`;
+}
+
+/* ---------- Spellers ---------- */
+function vSpeller(){
+  return `${backBar()}
+  <section class="hero"><span class="eyebrow">Spellers</span><h1>Who is practising?</h1>
+  <p class="muted">Each speller keeps their own progress on this device.</p></section>
+  ${S.profiles.map(p=>`
+  <section class="panel">
+    <div class="row" style="align-items:flex-end">
+      <label class="f" for="n-${p.id}" style="flex:1;min-width:180px">Name<input type="text" id="n-${p.id}" value="${esc(p.name)}" maxlength="30"></label>
+      <label class="f" for="g-${p.id}">Grade
+        <select id="g-${p.id}"><option value="3" ${p.grade===3?'selected':''}>Grade 3</option><option value="5" ${p.grade===5?'selected':''}>Grade 5</option></select></label>
+      <button class="btn" data-act="saveSpeller" data-id="${p.id}">Save</button>
+      ${S.profiles.length>1?`<button class="btn ghost" data-act="delSpeller" data-id="${p.id}">Remove</button>`:''}
+    </div>
+    <div id="msg-${p.id}" class="muted" style="font-size:.9rem"></div>
+  </section>`).join('')}
+  <div class="row"><button class="btn honey" data-act="addSpeller">Add a speller</button></div>`;
+}
+
+/* ---------- Word bank ---------- */
+let bankFilter = 'all', bankQ = '';
+function vBank(){
+  const p = prof(), list = WORDS[p.grade].official;
+  const shown = list.filter(w=>(bankFilter==='all'||status(p,w.key)===bankFilter) && w.key.includes(bankQ.toLowerCase()));
+  return `${backBar()}
+  <section class="hero"><span class="eyebrow">Grade ${p.grade} official list</span><h1>Word bank</h1>
+  <p class="muted">Tap a word to hear it. Coloured squares show progress.</p></section>
+  <div class="row spread">
+    <div class="seg" role="group" aria-label="Filter">${[['all','All'],['new','Not tried'],['learning','Learning'],['tricky','Tricky'],['mastered','Mastered']].map(([k,l])=>`<button data-act="bankFilter" data-k="${k}" aria-pressed="${bankFilter===k}">${l}</button>`).join('')}</div>
+    <input type="text" id="bankq" placeholder="Search" value="${esc(bankQ)}" data-input="bankq" autocomplete="off" spellcheck="false" style="max-width:200px">
+  </div>
+  <p class="muted" style="font-size:.9rem">${shown.length} words</p>
+  <div class="bank" id="bankgrid">${shown.map(w=>`<button class="bw" data-act="say" data-text="${esc(w.key)}"><span>${esc(w.word)}${w.alts.length?` <span class="muted">/ ${esc(w.alts.join(' / '))}</span>`:''}</span><span class="st ${status(p,w.key)}"></span></button>`).join('') || '<p class="muted">No words here yet.</p>'}</div>`;
+}
+
+/* ---------- Practice ---------- */
+function vPracticeSetup(){
+  const st = S.settings, p = prof();
+  const tricky = WORDS[p.grade].official.filter(w=>status(p,w.key)==='tricky').length;
+  return `${backBar()}
+  <section class="hero"><span class="eyebrow">Practice · Grade ${p.grade}</span><h1>Set up practice</h1></section>
+  <section class="panel">
+    <h3>Which words?</h3>
+    <div class="seg" role="group">${[['smart','Tricky first, then new'],['tricky',`Only tricky (${tricky})`],['all','Any word']].map(([k,l])=>`<button data-act="pOpt" data-o="pSet" data-v="${k}" aria-pressed="${st.pSet===k}">${l}</button>`).join('')}</div>
+    <h3>How many?</h3>
+    <div class="seg" role="group">${[10,20,40].map(n=>`<button data-act="pOpt" data-o="pSize" data-v="${n}" aria-pressed="${st.pSize==n}">${n} words</button>`).join('')}</div>
+    <h3>How will you answer?</h3>
+    <div class="seg" role="group">${[['type','Type it'],['aloud','Spell out loud, check myself'],['mic','Spell out loud, app listens']].map(([k,l])=>`<button data-act="pOpt" data-o="pMode" data-v="${k}" aria-pressed="${st.pMode===k}" ${k==='mic'&&!canListen?'disabled':''}>${l}</button>`).join('')}</div>
+    <p class="muted" style="font-size:.95rem">${{type:'Type the spelling. If it is wrong, you will see the letters you missed and type it once more correctly.', aloud:'Say the word, spell it out loud, say it again. Then tap to see the answer and mark yourself honestly.', mic:'Tap "Start spelling", then say the word, spell it, and say it again. The app checks the spelling and the Say–SPELL–Say procedure.'}[st.pMode]}</p>
+    ${canListen?'':`<p class="note" style="font-size:.92rem">${LISTEN_NOTE}</p>`}
+  </section>
+  <div class="row"><button class="btn big" data-act="pStart">Start practice</button></div>`;
+}
+function startPractice(){
+  const p = prof(), st = S.settings, list = WORDS[p.grade].official;
+  let q;
+  if(st.pSet==='tricky') q = shuffle(list.filter(w=>status(p,w.key)==='tricky'));
+  else if(st.pSet==='smart'){
+    const by = s => shuffle(list.filter(w=>status(p,w.key)===s));
+    q = [...by('tricky'), ...by('learning'), ...by('new'), ...by('mastered')];
+  } else q = shuffle(list);
+  q = q.slice(0, Number(st.pSize));
+  if(!q.length){ go('pSetup'); setTimeout(()=>alertNote('No tricky words yet. Pick another set.'),0); return; }
+  P = {q, i:0, phase:'ask', mode:(st.pMode==='mic'&&!canListen)?'aloud':st.pMode, right:0, missed:[], attempt:''};
+  go('practice');
+  setTimeout(()=>sayWord(P.q[0].key), 250);
+}
+function alertNote(t){ const a=$('#app'); a.insertAdjacentHTML('afterbegin', `<div class="note bad">${esc(t)}</div>`); }
+function vPractice(){
+  const w = P.q[P.i], hint = HINTS[w.key];
+  const head = `<div class="topnav"><button class="btn ghost back" data-act="pDone">End practice</button><span class="pill good">${P.right} right</span></div>
+  <div class="row spread"><span class="eyebrow">Practice · word ${P.i+1} of ${P.q.length}</span></div>
+  <div class="meter"><i style="width:${(P.i/P.q.length*100).toFixed(1)}%;background:var(--accent)"></i></div>`;
+  const ear = `<div class="center">
+      <button class="speak" data-act="say" data-text="${esc(w.key)}" aria-label="Hear the word">${SPEAKER}</button>
+      <div class="row" style="justify-content:center"><button class="btn alt" data-act="saySlow" data-text="${esc(w.key)}">Say it slowly</button><button class="btn alt" data-act="meaning">Meaning</button></div>
+      <div id="meaning" hidden class="note honey meaning" style="max-width:520px">${meaningHtml(w)}</div>
+    </div>`;
+  let body = '';
+  if(P.mode==='type'){
+    if(P.phase==='ask') body = `
+      <input class="spell" id="spell" type="text" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" aria-label="Type the spelling" data-enter="pCheck">
+      <div class="row" style="justify-content:center"><button class="btn big" data-act="pCheck">Check</button><button class="link" data-act="pGiveUp">I don't know it</button></div>`;
+    else if(P.phase==='right') body = `
+      <div class="center"><div class="big-result good">Correct!</div>${tiles(w.key,'pop')}${w.alts.length?`<p class="muted">Also correct: ${esc(w.alts.join(', '))}</p>`:''}
+      <button class="btn big" data-act="pNext" id="nextbtn">Next word</button></div>`;
+    else body = `
+      <div class="center"><div class="big-result bad">Not quite</div>
+      ${P.attempt?`<p class="muted">You wrote <b style="font-family:var(--f-letter);color:var(--ink)">${esc(P.attempt)}</b>. Red letters are the ones to fix.</p>`:''}
+      ${missMarks(w.key, P.attempt)}
+      <p>Now type <b>${esc(w.word)}</b> once correctly.</p></div>
+      <input class="spell" id="spell" type="text" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" aria-label="Type the correct spelling" data-enter="pRetype">
+      <div class="row" style="justify-content:center"><button class="btn big" data-act="pRetype">Check</button><button class="link" data-act="pNext">Skip</button></div>
+      <div id="retypemsg" class="muted" style="text-align:center"></div>`;
+  } else if(P.mode==='mic'){
+    if(P.phase==='ask') body = `${P.msg?`<div class="note bad">${esc(P.msg)}</div>`:''}${listenPanel()}`;
+    else {
+      const ok = P.heard.letters && w.answers.includes(P.heard.letters);
+      body = `<div class="center"><div class="big-result ${ok&&P.heard.procOk?'good':'bad'}">${ok?(P.heard.procOk?'Correct!':'Right spelling, check the procedure'):'Not quite'}</div>
+        ${ok?tiles(w.key,'pop'):missMarks(w.key, P.heard.letters||'')}</div>
+        ${heardHtml(P.heard, w)}
+        <div class="row" style="justify-content:center"><button class="btn big" data-act="pMicNext" id="nextbtn">Next word</button><button class="btn alt" data-act="pMicAgain">Spell it again</button>${ok?'':`<button class="link" data-act="pMicOverride">The app heard me wrong</button>`}</div>`;
+    }
+  } else {
+    if(P.phase==='ask') body = `
+      <div class="note honey" style="text-align:center"><b>Say</b> the word, <b>SPELL</b> it letter by letter, <b>say</b> it again.<br><span class="muted">No "um" or "uh", and don't sound out syllables.</span></div>
+      <div class="row" style="justify-content:center"><button class="btn big" data-act="pReveal">Show the spelling</button></div>`;
+    else body = `
+      <div class="center">${tiles(w.key,'pop')}${w.alts.length?`<p class="muted">Also correct: ${esc(w.alts.join(', '))}</p>`:''}
+      <p>Did you spell it right?</p>
+      <div class="row" style="justify-content:center"><button class="btn big" data-act="pSelf" data-ok="1">I got it</button><button class="btn big alt" data-act="pSelf" data-ok="0">I missed it</button></div></div>`;
+  }
+  return `${head}<section class="panel">${ear}${body}</section>`;
+}
+function pHeard(text, err){
+  if(!P || view!=='practice') return;
+  if(!text){ P.msg = micError(err); render(); return; }
+  P.msg = ''; P.heard = parseHeard(text); P.phase = 'heard'; render();
+}
+function pAdvance(){
+  P.i++; P.phase='ask'; P.attempt=''; P.msg=''; P.heard=null;
+  if(P.i>=P.q.length){ go('pDone'); return; }
+  render(); sayWord(P.q[P.i].key);
+}
+function vPracticeDone(){
+  const n = P.i>=P.q.length ? P.q.length : P.i;
+  return `${backBar()}
+  <section class="hero"><span class="eyebrow">Practice finished</span><h1>${P.right} of ${n} right first time</h1>
+  ${tiles(P.right===n&&n?'super':'good','pop')}</section>
+  ${P.missed.length?`<section class="panel"><h3>Words to work on</h3><p class="muted">These are marked tricky and come back first next time.</p>
+    <div class="bank">${P.missed.map(w=>`<button class="bw" data-act="say" data-text="${esc(w.key)}"><span>${esc(w.word)}</span><span class="st tricky"></span></button>`).join('')}</div></section>`
+    :`<section class="note good">No mistakes this time.</section>`}
+  <div class="row"><button class="btn big" data-act="pStart">Practise again</button><button class="btn alt" data-act="home">Home</button></div>`;
+}
+
+/* ---------- Mock bee ---------- */
+const ROUNDS = 3, PER_ROUND = 10, OFFICIAL_PER_ROUND = 7, QUALIFY = 16;
+const OUTCOMES = {
+  ok:{label:'Correct spelling, correct procedure', pts:2},
+  proc:{label:'Correct spelling, wrong procedure', pts:0},
+  wrong:{label:'Incorrect spelling', pts:-1},
+  none:{label:'No answer', pts:-1},
+};
+function vMockSetup(){
+  const p = prof(), mode = S.settings.mMode;
+  return `${backBar()}
+  <section class="hero"><span class="eyebrow">Mock bee · Grade ${p.grade}</span><h1>Regional Championship mock</h1>
+  <p class="muted">Three rounds of 10 words: 7 from the official list and 3 from a hidden list. A cumulative score of ${QUALIFY} after Round 2 qualifies for Round 3.</p></section>
+  <section class="panel">
+    <h3>Who judges?</h3>
+    <div class="seg" role="group">${[['judge','A grown-up judges'],['listen','The app listens'],['solo','Speller types alone']].map(([k,l])=>`<button data-act="mOpt" data-v="${k}" aria-pressed="${mode===k}" ${k==='listen'&&!canListen?'disabled':''}>${l}</button>`).join('')}</div>
+    <p class="muted" style="font-size:.95rem">${{
+      judge:'The grown-up holds the device. The speller answers out loud using Say–SPELL–Say, and the judge taps the result. This is closest to the real event.',
+      listen:'The speller answers out loud. The microphone turns on at the 20-second signal (or earlier with "Start spelling"), and the app scores the spelling and the Say–SPELL–Say procedure. A grown-up can change any score afterwards.',
+      solo:'The speller types each answer before the 40 seconds run out. Procedure cannot be checked, so a correct spelling scores 2.'}[mode]}</p>
+    ${canListen?'':`<p class="note" style="font-size:.92rem">${LISTEN_NOTE}</p>`}
+  </section>
+  <section class="panel">
+    <h3>Rules for each word</h3>
+    <div class="tbl-wrap"><table>
+      <tr><th>Time</th><th>What is allowed</th></tr>
+      <tr><td><b>0–20 s</b></td><td>Talk with your teammate. Ask for the word again or its meaning.</td></tr>
+      <tr><td><b>20–40 s</b></td><td>After the signal: spell only. No talking, no questions, no repeats.</td></tr>
+      <tr><td><b>40 s</b></td><td>Final signal. If you already started spelling, finish, but you cannot correct it.</td></tr>
+    </table></div>
+    <div class="tbl-wrap"><table>
+      <tr><th>Outcome</th><th class="num">Score</th></tr>
+      ${Object.values(OUTCOMES).map(o=>`<tr><td>${o.label}</td><td class="num">${o.pts>0?'+':''}${o.pts}</td></tr>`).join('')}
+    </table></div>
+    <p class="muted" style="font-size:.9rem">British and American spellings are both accepted.</p>
+  </section>
+  <div class="row"><button class="btn big" data-act="mStart">Start Round 1</button></div>`;
+}
+function buildRound(){
+  const p = prof(), W = WORDS[p.grade];
+  const pick = (arr, n) => shuffle(arr.filter(w=>!M.used.has(w.key))).slice(0,n);
+  const words = shuffle([...pick(W.official, OFFICIAL_PER_ROUND), ...pick(W.hidden, PER_ROUND-OFFICIAL_PER_ROUND)]);
+  words.forEach(w=>M.used.add(w.key));
+  return {words, results:[]};
+}
+function startMock(){
+  M = {mode:(S.settings.mMode==='listen'&&!canListen)?'judge':S.settings.mMode, used:new Set(), rounds:[], r:0, i:0, done:null, show:false};
+  M.rounds.push(buildRound());
+  go('mock'); beginWord();
+}
+const roundScore = r => r.results.reduce((s,x)=>s+x.pts,0);
+const cumScore = () => M.rounds.reduce((s,r)=>s+roundScore(r),0);
+
+/* Timer: 40 s with a signal at 20 s (Procedural Rules 2–4). */
+let T = null;
+function stopTimer(){ if(T){ clearInterval(T.h); T=null; } }
+function beginWord(){
+  M.done = null; M.show = false; M.heard = null; M.msg = '';
+  render();
+  sayWord(curWord().key);
+  startTimer();
+}
+function startTimer(){
+  stopTimer();
+  T = {start:performance.now(), phase:'consult', h:null};
+  T.h = setInterval(tick, 100); tick();
+}
+function tick(){
+  if(!T) return;
+  const el = (performance.now()-T.start)/1000;
+  const a = $('#t1'), b = $('#t2'), secs = $('#secs'), ph = $('#phase');
+  if(a) a.style.width = Math.min(100, el/20*100)+'%';
+  if(b) b.style.width = Math.max(0, Math.min(100, (el-20)/20*100))+'%';
+  if(secs) secs.textContent = Math.max(0, Math.ceil(40-el));
+  if(el>=20 && T.phase==='consult'){
+    T.phase='spell'; tone(880,0.18,2);
+    document.querySelectorAll('[data-consult]').forEach(x=>x.disabled=true);
+    if(M.mode==='listen' && !L) setTimeout(()=>{ if(view==='mock' && !M.done && !L) startListening(mHeard); }, 700);
+  }
+  if(el>=40){
+    T.phase='over'; tone(330,0.6,1);
+    clearInterval(T.h);
+    if(M.mode==='solo'){ const v=($('#spell')||{}).value||''; mSolo(v, true); }
+    if(M.mode==='listen'){
+      // Rule 11: a speller who has already started may finish.
+      if(!L) mResult('none','');
+      else if(!(L.fin+L.live).trim()){ stopListening(true); mResult('none',''); }
+    }
+  }
+  if(ph){ const t={consult:['Consult and ask questions','phase'], spell:['Spell now. No talking.','phase spell'], over:['Time is up','phase over']}[T.phase]; ph.textContent=t[0]; ph.className=t[1]; }
+}
+const curWord = () => M.rounds[M.r].words[M.i];
+
+function vMock(){
+  const R = M.rounds[M.r], w = curWord(), hint = HINTS[w.key];
+  const head = `<div class="topnav"><button class="btn ghost back" data-act="mQuit">Quit mock</button></div>
+  <div class="row spread"><span class="eyebrow">Round ${M.r+1} · word ${M.i+1} of ${PER_ROUND}</span>
+    <span class="row" style="gap:8px"><span class="pill">Round ${roundScore(R)}</span><span class="pill good">Total ${cumScore()}</span></span></div>`;
+  if(M.done){
+    const d = M.done;
+    return `${head}<section class="panel center">
+      <div class="big-result ${d.pts>0?'good':'bad'}">${d.pts>0?'+':''}${d.pts} · ${esc(OUTCOMES[d.outcome].label)}</div>
+      ${d.outcome==='wrong' && d.answer ? missMarks(w.key, d.answer) : tiles(w.key,'pop')}
+      ${d.answer?`<p class="muted">Answer given: <b style="font-family:var(--f-letter);color:var(--ink)">${esc(d.answer)}</b></p>`:''}
+      ${w.src==='hidden'?'<span class="pill honey">Hidden-list word</span>':'<span class="pill">Official-list word</span>'}
+      ${M.heard?`<div style="width:100%;text-align:left;display:flex;flex-direction:column;gap:12px">${heardHtml(M.heard, w)}
+        <details><summary>Change the score (grown-up)</summary><div class="outcomes" style="margin-top:10px">${Object.entries(OUTCOMES).map(([k,o])=>`<button class="oc ${o.pts>0?'plus':'minus'}" data-act="mOverride" data-o="${k}" aria-pressed="${d.outcome===k}"><span>${o.label}</span><span class="pts">${o.pts>0?'+':''}${o.pts}</span></button>`).join('')}</div></details></div>`:''}
+      <button class="btn big" data-act="mNext" id="nextbtn">${M.i+1<PER_ROUND?'Next word':'See round marksheet'}</button>
+    </section>`;
+  }
+  const late = T && T.phase!=='consult' ? 'disabled' : '';
+  const consultBtns = `
+    <div class="row" style="justify-content:center">
+      <button class="btn alt" data-consult data-act="say" data-text="${esc(w.key)}" ${late}>Repeat the word</button>
+      <button class="btn alt" data-consult data-act="meaning" ${late}>Meaning</button>
+    </div>
+    <div id="meaning" hidden class="note honey meaning">${meaningHtml(w)}</div>`;
+  const timer = `
+    <div class="center"><span class="secs" id="secs">40</span><span class="phase" id="phase">Consult and ask questions</span></div>
+    <div class="timer"><div class="track"><div class="seg-t"><i id="t1"></i></div><div class="seg-t spell"><i id="t2"></i></div></div>
+    <div class="labels"><span>0–20 s · may consult</span><span>20–40 s · spell only</span></div></div>`;
+  if(M.mode==='solo'){
+    return `${head}<section class="panel">${timer}
+      <div class="center"><button class="speak" data-consult data-act="say" data-text="${esc(w.key)}" aria-label="Hear the word" ${late}>${SPEAKER}</button></div>
+      ${consultBtns}
+      <input class="spell" id="spell" type="text" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" aria-label="Type the spelling" data-enter="mSubmit">
+      <div class="row" style="justify-content:center"><button class="btn big" data-act="mSubmit">Submit spelling</button></div>
+      <p class="muted" style="text-align:center;font-size:.9rem">Once you submit, you cannot change it.</p>
+    </section>
+    <div class="row"><button class="btn ghost" data-act="mDisrupt">Restart timer (disruption)</button></div>`;
+  }
+  if(M.mode==='listen'){
+    return `${head}<section class="panel">${timer}
+      <div class="center"><button class="speak" data-consult data-act="say" data-text="${esc(w.key)}" aria-label="Hear the word" ${late}>${SPEAKER}</button></div>
+      ${consultBtns}
+      ${M.msg?`<div class="note bad">${esc(M.msg)}</div>`:''}
+      ${listenPanel()}
+    </section>
+    <div class="row"><button class="btn ghost" data-act="mDisrupt">Restart timer (disruption)</button></div>`;
+  }
+  return `${head}<section class="panel">${timer}
+      <div class="note" style="text-align:center">
+        <span class="eyebrow">Judge's card</span>
+        <div class="judge-word ${M.show?'':'hidden'}" id="jw">${showWord(w)}</div>
+        <button class="link" data-act="mShow">${M.show?'Hide word':'Show word to judge'}</button>
+      </div>
+      ${consultBtns}
+      <span class="eyebrow">Mark the answer</span>
+      <div class="outcomes">${Object.entries(OUTCOMES).map(([k,o])=>`<button class="oc ${o.pts>0?'plus':'minus'}" data-act="mJudge" data-o="${k}"><span>${o.label}</span><span class="pts">${o.pts>0?'+':''}${o.pts}</span></button>`).join('')}</div>
+      <details><summary>What counts as wrong procedure?</summary><ul>
+        <li>Not following Say–SPELL–Say, including when correcting</li>
+        <li>Talking with a teammate after the 20-second signal</li>
+        <li>Teammate prompting, mouthing or spelling along</li>
+        <li>Sounding out syllables (S-I-G "sig" …)</li>
+        <li>Fillers like um, uh, ah while spelling</li>
+        <li>Hurriedly repeating letters</li>
+        <li>A speller may restart only before saying the last letter, and must Say–SPELL–Say again</li>
+      </ul></details>
+    </section>
+    <div class="row"><button class="btn ghost" data-act="mDisrupt">Restart timer (disruption)</button></div>`;
+}
+function mResult(outcome, answer){
+  if(M.done) return;
+  stopTimer();
+  const w = curWord(), pts = OUTCOMES[outcome].pts;
+  M.done = {outcome, pts, answer};
+  M.rounds[M.r].results.push({w, outcome, pts, answer});
+  render();
+}
+function mSolo(val, timeout){
+  const v = norm(val||'');
+  if(!v) return mResult('none','');
+  mResult(isRight(curWord(), v) ? 'ok' : 'wrong', v);
+}
+function mHeard(text, err){
+  if(!M || view!=='mock' || M.done) return;
+  const over = !T || T.phase==='over';
+  if(!text){ if(over) return mResult('none',''); M.msg = micError(err); render(); return; }
+  const r = parseHeard(text);
+  if(r.noLetters && !over){ M.msg = `I heard “${displayHeard(text, curWord().answers)}” but no separate letters. Tap "Start spelling" and spell with a short pause between letters.`; render(); return; }
+  M.heard = r;
+  const right = !!r.letters && curWord().answers.includes(r.letters);
+  mResult(right ? (r.procOk ? 'ok' : 'proc') : 'wrong', r.letters || text);
+}
+function mOverride(o){
+  const res = M.rounds[M.r].results; const last = res[res.length-1];
+  last.outcome = o; last.pts = OUTCOMES[o].pts;
+  M.done.outcome = o; M.done.pts = last.pts; render();
+}
+function mNext(){
+  { const d=M.done, w=curWord(); if(d && w.src==='official') record(w.key, d.outcome==='ok'||d.outcome==='proc'); }
+  if(M.i+1<PER_ROUND){ M.i++; beginWord(); }
+  else { stopTimer(); go('mRound'); }
+}
+function marksheet(R, rIdx){
+  return `<div class="tbl-wrap"><table>
+    <tr><th>#</th><th>Word</th><th>List</th><th>Result</th><th class="num">Score</th></tr>
+    ${R.results.map((x,k)=>`<tr><td>${k+1}</td><td><span class="w">${esc(x.w.word)}</span>${x.answer&&x.outcome==='wrong'?`<br><span class="muted" style="font-size:.85rem">wrote ${esc(x.answer)}</span>`:''}</td>
+      <td>${x.w.src==='hidden'?'<span class="pill honey">Hidden</span>':'<span class="pill">Official</span>'}</td>
+      <td><span class="pill ${x.pts>0?'good':x.pts<0?'bad':''}">${esc(OUTCOMES[x.outcome].label)}</span></td>
+      <td class="num">${x.pts>0?'+':''}${x.pts}</td></tr>`).join('')}
+    <tr><td colspan="4"><b>Round ${rIdx+1} total</b></td><td class="num">${roundScore(R)}</td></tr>
+  </table></div>`;
+}
+function vMockRound(){
+  const R = M.rounds[M.r], cum = cumScore();
+  let next = '';
+  if(M.r===0) next = `<button class="btn big" data-act="mRoundNext">Start Round 2</button>`;
+  else if(M.r===1){
+    next = cum>=QUALIFY
+      ? `<div class="note good"><b>Qualified!</b> ${cum} points is at least ${QUALIFY}. At the real event, the top 3 teams in each grade with ${QUALIFY}+ go through.</div><button class="btn big" data-act="mRoundNext">Start Round 3</button>`
+      : `<div class="note bad"><b>${cum} points.</b> Round 3 needs at least ${QUALIFY} after Round 2, so the mock ends here.</div><button class="btn big" data-act="mFinish">See final marksheet</button>`;
+  } else next = `<button class="btn big" data-act="mFinish">See final marksheet</button>`;
+  return `
+  <section class="hero"><span class="eyebrow">Round ${M.r+1} marksheet</span><h1>Round ${M.r+1}: ${roundScore(R)} points</h1>
+  <div class="scorebox"><div><span class="eyebrow">This round</span><b>${roundScore(R)}</b></div><div><span class="eyebrow">Cumulative</span><b>${cum}</b></div><div><span class="eyebrow">Best possible</span><b>${PER_ROUND*2}</b></div></div></section>
+  <section class="panel">${marksheet(R, M.r)}</section>
+  <div class="row" style="flex-direction:column;align-items:stretch;gap:12px">${next}</div>`;
+}
+function finishMock(){
+  const p = prof();
+  const rounds = M.rounds.map(roundScore), total = cumScore();
+  const qualified = M.rounds.length>=3;
+  p.mocks.push({date:new Date().toISOString(), mode:M.mode, rounds, total, qualified});
+  save(); go('mFinal');
+}
+function vMockFinal(){
+  const total = cumScore();
+  const missed = M.rounds.flatMap(r=>r.results).filter(x=>x.pts<=0);
+  return `${backBar()}
+  <section class="hero"><span class="eyebrow">Mock bee complete</span><h1>Final score: ${total}</h1>
+  <div class="scorebox">${M.rounds.map((r,i)=>`<div><span class="eyebrow">Round ${i+1}</span><b>${roundScore(r)}</b></div>`).join('')}<div><span class="eyebrow">Total</span><b>${total}</b></div></div></section>
+  ${M.rounds.map((r,i)=>`<section class="panel"><h3>Round ${i+1}</h3>${marksheet(r,i)}</section>`).join('')}
+  ${missed.length?`<section class="panel"><h3>Practise these</h3><p class="muted">Official-list misses are now marked tricky.</p>
+    <div class="bank">${missed.map(x=>`<button class="bw" data-act="say" data-text="${esc(x.w.key)}"><span>${esc(x.w.word)}</span><span class="st tricky"></span></button>`).join('')}</div></section>`:''}
+  <p class="muted" style="font-size:.9rem">In a real tie, teams play SpellTok tiebreaker rounds. Those scores don't count toward the total.</p>
+  <div class="row"><button class="btn big" data-act="mSetup">New mock bee</button><button class="btn alt" data-act="home">Home</button></div>`;
+}
+
+/* ---------- Events ---------- */
+document.addEventListener('click', e=>{
+  const b = e.target.closest('[data-act]'); if(!b || b.disabled) return;
+  const a = b.dataset.act;
+  switch(a){
+    case 'home': if(view==='mock'||view==='practice') return; go('home'); break;
+    case 'who': S.active=b.dataset.id; save(); go('home'); break;
+    case 'say': sayWord(b.dataset.text); break;
+    case 'saySlow': sayWord(b.dataset.text, true); break;
+    case 'tts': speak(b.dataset.text); break;
+    case 'readMeaning': readMeaning(b.dataset.k); break;
+    case 'meaning': { const m=$('#meaning'); if(m) m.hidden=!m.hidden; break; }
+    case 'speller': go('speller'); break;
+    case 'saveSpeller': {
+      const p=S.profiles.find(x=>x.id===b.dataset.id);
+      p.name=($('#n-'+p.id).value.trim()||p.name); p.grade=Number($('#g-'+p.id).value); save();
+      renderWho(); $('#msg-'+p.id).textContent='Saved.'; break;
+    }
+    case 'delSpeller': {
+      if(b.dataset.confirm!=='1'){ b.dataset.confirm='1'; b.textContent='Tap again to remove'; return; }
+      S.profiles=S.profiles.filter(x=>x.id!==b.dataset.id);
+      if(!S.profiles.find(x=>x.id===S.active)) S.active=S.profiles[0].id;
+      save(); go('speller'); break;
+    }
+    case 'addSpeller': {
+      const id='p'+Date.now().toString(36);
+      S.profiles.push({id,name:'New speller',grade:3,stats:{},mocks:[]}); save(); go('speller'); break;
+    }
+    case 'bank': go('bank'); break;
+    case 'bankFilter': bankFilter=b.dataset.k; render(); break;
+    case 'pSetup': go('pSetup'); break;
+    case 'pOpt': S.settings[b.dataset.o]=b.dataset.v; save(); render(); break;
+    case 'pStart': startPractice(); break;
+    case 'pCheck': {
+      const v=$('#spell').value; if(!norm(v)) return;
+      const w=P.q[P.i]; P.attempt=norm(v);
+      if(isRight(w,v)){ P.right++; P.phase='right'; record(w.key,true); }
+      else { P.phase='wrong'; P.missed.push(w); record(w.key,false); }
+      render(); break;
+    }
+    case 'pGiveUp': { const w=P.q[P.i]; P.attempt=''; P.phase='wrong'; P.missed.push(w); record(w.key,false); render(); break; }
+    case 'pRetype': {
+      const v=$('#spell').value;
+      if(isRight(P.q[P.i],v)) pAdvance();
+      else { $('#retypemsg').textContent='Not yet. Look at the tiles and try again.'; $('#spell').select(); }
+      break;
+    }
+    case 'pReveal': P.phase='reveal'; render(); break;
+    case 'pSelf': { const w=P.q[P.i], ok=b.dataset.ok==='1'; record(w.key,ok); if(ok)P.right++; else P.missed.push(w); pAdvance(); break; }
+    case 'pNext': pAdvance(); break;
+    case 'micStart': startListening(view==='mock' ? mHeard : pHeard); break;
+    case 'micStop': stopListening(false); break;
+    case 'pMicNext': { const w=P.q[P.i], ok=!!P.heard.letters && w.answers.includes(P.heard.letters); record(w.key, ok); if(ok)P.right++; else P.missed.push(w); pAdvance(); break; }
+    case 'pMicAgain': P.phase='ask'; P.heard=null; render(); break;
+    case 'pMicOverride': { const w=P.q[P.i]; record(w.key,true); P.right++; pAdvance(); break; }
+    case 'pDone': go('pDone'); break;
+    case 'mSetup': go('mSetup'); break;
+    case 'mOpt': S.settings.mMode=b.dataset.v; save(); render(); break;
+    case 'mStart': startMock(); break;
+    case 'mShow': M.show=!M.show; $('#jw').classList.toggle('hidden',!M.show); b.textContent=M.show?'Hide word':'Show word to judge'; break;
+    case 'mJudge': mResult(b.dataset.o, ''); break;
+    case 'mOverride': mOverride(b.dataset.o); break;
+    case 'mSubmit': mSolo($('#spell').value); break;
+    case 'mDisrupt': stopListening(true); M.msg=''; render(); startTimer(); document.querySelectorAll('[data-consult]').forEach(x=>x.disabled=false); { const ph=$('#phase'); if(ph){ph.textContent='Consult and ask questions';ph.className='phase';} } sayWord(curWord().key); break;
+    case 'mNext': mNext(); break;
+    case 'mRoundNext': M.r++; M.i=0; M.rounds.push(buildRound()); go('mock'); beginWord(); break;
+    case 'mFinish': finishMock(); break;
+    case 'mQuit':
+      if(b.dataset.confirm!=='1'){ b.dataset.confirm='1'; b.textContent='Tap again to quit'; return; }
+      stopTimer(); M=null; go('home'); break;
+  }
+});
+document.addEventListener('keydown', e=>{
+  if(e.key!=='Enter') return;
+  const t = e.target.closest('[data-enter]'); if(t){ e.preventDefault(); const b=document.querySelector(`[data-act="${t.dataset.enter}"]`); if(b) b.click(); return; }
+  const nb = $('#nextbtn'); if(nb && document.activeElement.tagName!=='BUTTON'){ e.preventDefault(); nb.click(); }
+});
+document.addEventListener('change', e=>{
+  const k = e.target.dataset.change;
+  if(k==='accent'){ S.settings.accent=e.target.value; save(); }
+  if(k==='voice'){ S.settings.voice=e.target.value; save(); }
+  if(k==='rate'){ S.settings.rate=Number(e.target.value); save(); }
+});
+document.addEventListener('input', e=>{
+  if(e.target.dataset.input==='bankq'){
+    bankQ=e.target.value; const pos=e.target.selectionStart;
+    render(); const i=$('#bankq'); i.focus(); i.setSelectionRange(pos,pos);
+  }
+});
+render();
+</script>
+</body></html>
