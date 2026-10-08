@@ -163,6 +163,16 @@ td .w{font-family:var(--f-letter);font-weight:700}
 .meaning{display:flex;flex-direction:column;gap:8px;text-align:left}
 .topnav{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
 .back{padding:8px 16px;font-size:.95rem}
+.letters{display:grid;grid-template-columns:repeat(auto-fill,minmax(46px,1fr));gap:6px}
+.lt{border:1.5px solid var(--line);background:var(--surface);border-radius:10px;padding:6px 0 4px;display:flex;flex-direction:column;align-items:center;line-height:1.1}
+.lt b{font-family:var(--f-letter);font-size:1.2rem}
+.lt small{font-size:.7rem;color:var(--muted);font-variant-numeric:tabular-nums}
+.lt.all{grid-column:span 3;flex-direction:row;justify-content:center;font-weight:700;font-size:.92rem}
+.lt[aria-pressed="true"]{background:var(--honey);border-color:var(--honey);color:var(--honey-ink)}
+.lt[aria-pressed="true"] small{color:var(--honey-ink)}
+.lt:disabled{opacity:.35;cursor:not-allowed}
+.override{display:flex;flex-direction:column;align-items:center;gap:6px;text-align:center;padding-top:6px;border-top:1px dashed var(--line)}
+.override .muted{font-size:.88rem}
 .credit{font-size:.82rem;color:var(--muted)}
 @media (prefers-reduced-motion: reduce){*{transition:none!important;animation:none!important}}
 @keyframes pop{0%{transform:scale(.6);opacity:0}100%{transform:scale(1);opacity:1}}
@@ -1194,7 +1204,7 @@ function fresh(){
   return {profiles:[
     {id:'p3',name:'Grade 3 speller',grade:3,stats:{},mocks:[]},
     {id:'p5',name:'Grade 5 speller',grade:5,stats:{},mocks:[]},
-  ], active:'p3', settings:{accent:'en-GB', rate:0.85, voice:'mw', pSet:'smart', pSize:10, pMode:'type', mMode:'judge'}};
+  ], active:'p3', settings:{accent:'en-GB', rate:0.85, voice:'mw', pSet:'smart', pSize:10, pLetters:'', pMode:'type', mMode:'judge'}};
 }
 let S;
 try { S = JSON.parse(localStorage.getItem(STORE)); } catch(e){}
@@ -1340,24 +1350,43 @@ function displayHeard(text, answers){
   }).join(' ').replace(/(\(word\) )+\(word\)/g, '(word)');
 }
 const listenAnswers = () => view==='mock' ? curWord().answers : P.q[P.i].answers;
-function parseHeard(text){
+/* Procedural Rule 10: a speller may restart before saying the last letter, but must
+   Say–SPELL–Say again; once the whole word is spelled, it cannot be corrected. */
+function parseHeard(text, answers){
   const items = heardItems(text);
   const idx = items.map((x,i)=>x.l?i:-1).filter(i=>i>=0);
   if(idx.length<2) return {text, letters:'', noLetters:true};
   const fi = idx[0], li = idx[idx.length-1];
   const before = items.slice(0,fi).filter(x=>!x.filler).map(x=>x.t);
   const after = items.slice(li+1).filter(x=>!x.filler).map(x=>x.t);
-  let mid = items.slice(fi, li+1);
-  // Restarting with the word again (allowed before the last letter) starts a new attempt.
-  const said = new Set(before);
-  let cut = -1; mid.forEach((x,i)=>{ if(!x.l && said.has(x.t)) cut = i; });
-  const restarted = cut>=0;
-  if(restarted) mid = mid.slice(cut+1);
-  const letters = mid.filter(x=>x.l).map(x=>x.l).join('');
-  const extra = mid.filter(x=>!x.l && !x.filler).map(x=>x.t);
-  const fillers = items.slice(fi, li+1).filter(x=>x.filler).map(x=>x.t);
-  return {text, letters, saidFirst:before.length>0, saidLast:after.length>0, extra, fillers, restarted,
-    procOk: before.length>0 && after.length>0 && !extra.length && !fillers.length};
+  const mid = items.slice(fi, li+1);
+  // Saying the word again in the middle marks a new attempt.
+  const said = new Set(before), segs = [[]];
+  mid.forEach(x=>{ if(!x.l && said.has(x.t)) segs.push([]); else segs[segs.length-1].push(x); });
+  const minLen = Math.min(...answers.map(a=>a.length));
+  const finished = l => answers.includes(l) || l.length >= minLen-1;
+  // Starting over without saying the word: "A P L A P P L E" (only provable when the restart is right).
+  const splitNoSay = l => {
+    if(answers.includes(l)) return null;
+    for(let k=1; k<l.length && k<minLen-1; k++) if(l[k]===l[0] && answers.includes(l.slice(k))) return l.slice(k);
+    return null;
+  };
+  let attempt = null, restartNoSay = false, restartedOk = false, afterFinish = null;
+  for(const seg of segs){
+    let l = seg.filter(x=>x.l).map(x=>x.l).join('');
+    if(!l) continue;
+    const fixed = splitNoSay(l);
+    if(fixed){ restartNoSay = true; l = fixed; }
+    if(attempt===null){ attempt = {l, seg}; continue; }
+    if(finished(attempt.l)){ afterFinish = l; break; }
+    restartedOk = true; attempt = {l, seg};
+  }
+  const letters = attempt ? attempt.l : '';
+  const extra = attempt ? attempt.seg.filter(x=>!x.l && !x.filler).map(x=>x.t) : [];
+  const fillers = mid.filter(x=>x.filler).map(x=>x.t);
+  return {text, letters, saidFirst:before.length>0, saidLast:after.length>0, extra, fillers,
+    restartedOk, restartNoSay, afterFinish,
+    procOk: before.length>0 && after.length>0 && !extra.length && !fillers.length && !restartNoSay};
 }
 let L = null;
 function startListening(onDone){
@@ -1417,8 +1446,12 @@ function heardHtml(r, w){
     ${c(!r.extra.length,'Spelled letter by letter'+(r.extra.length?` (also heard “${esc(maskWord(r.extra.join(' '), w.answers).replace(/_____/g,'(word)'))}”)`:''))}
     ${c(r.saidLast,'Said the word again at the end')}
     ${r.fillers.length?c(false,`Filler sounds: ${esc(r.fillers.join(', '))}`):''}
+    ${r.restartNoSay?c(false,'Said the word again before starting over'):''}
     ${c(w.answers.includes(r.letters), `Spelling: <b style="font-family:var(--f-letter)">${esc(r.letters.toUpperCase().split('').join(' '))}</b>`)}
-  </ul>`;
+  </ul>
+  ${r.afterFinish?`<div class="note honey"><b>Rule 10:</b> you finished spelling the word, so your first spelling counts. A word can't be corrected after the last letter. Next time, take your time before you start.</div>`:''}
+  ${r.restartNoSay?`<div class="note honey"><b>Rule 10:</b> you started again without saying the word first. To restart, say the word, spell it, and say it again. Starting over without the word is wrong procedure, which scores 0 even when the spelling is right.</div>`:''}
+  ${r.restartedOk?`<div class="note good"><b>Good restart.</b> You stopped before the last letter and said the word again. That's allowed (Rule 10).</div>`:''}`;
 }
 const LISTEN_NOTE = 'Listening needs Chrome or Edge, with the app opened by double-clicking “Start Bee Ready” in its folder. The claude.ai page can’t use the microphone.';
 const MIC = `<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><rect x="9" y="2" width="6" height="12" rx="3" fill="currentColor"/><path d="M5 11a7 7 0 0 0 14 0M12 18v4"/></svg>`;
@@ -1543,14 +1576,24 @@ function vBank(){
 /* ---------- Practice ---------- */
 function vPracticeSetup(){
   const st = S.settings, p = prof();
-  const tricky = WORDS[p.grade].official.filter(w=>status(p,w.key)==='tricky').length;
+  const list = WORDS[p.grade].official, letters = st.pLetters || '';
+  const chosen = byLetters(list, letters);
+  const tricky = chosen.filter(w=>status(p,w.key)==='tricky').length;
+  const perLetter = {}; list.forEach(w=>{ const c=firstLetter(w); perLetter[c]=(perLetter[c]||0)+1; });
+  const az = 'abcdefghijklmnopqrstuvwxyz'.split('');
   return `${backBar()}
   <section class="hero"><span class="eyebrow">Practice · Grade ${p.grade}</span><h1>Set up practice</h1></section>
   <section class="panel">
+    <div class="row spread"><h3>Starting letter</h3><span class="muted" style="font-variant-numeric:tabular-nums">${chosen.length} words${letters?` starting with ${letters.toUpperCase().split('').join(', ')}`:''}</span></div>
+    <div class="letters" role="group" aria-label="Starting letters">
+      <button class="lt all" data-act="pLetter" data-l="" aria-pressed="${!letters}">All letters</button>
+      ${az.map(c=>`<button class="lt" data-act="pLetter" data-l="${c}" aria-pressed="${letters.includes(c)}" ${perLetter[c]?'':'disabled'} aria-label="${c.toUpperCase()}, ${perLetter[c]||0} words"><b>${c.toUpperCase()}</b><small>${perLetter[c]||0}</small></button>`).join('')}
+    </div>
+    <p class="muted" style="font-size:.9rem">Tap one letter, or several to practise them together.</p>
     <h3>Which words?</h3>
     <div class="seg" role="group">${[['smart','Tricky first, then new'],['tricky',`Only tricky (${tricky})`],['all','Any word']].map(([k,l])=>`<button data-act="pOpt" data-o="pSet" data-v="${k}" aria-pressed="${st.pSet===k}">${l}</button>`).join('')}</div>
     <h3>How many?</h3>
-    <div class="seg" role="group">${[10,20,40].map(n=>`<button data-act="pOpt" data-o="pSize" data-v="${n}" aria-pressed="${st.pSize==n}">${n} words</button>`).join('')}</div>
+    <div class="seg" role="group">${[10,20,40,'all'].map(n=>`<button data-act="pOpt" data-o="pSize" data-v="${n}" aria-pressed="${String(st.pSize)===String(n)}">${n==='all'?`All ${st.pSet==='tricky'?tricky:chosen.length}`:n+' words'}</button>`).join('')}</div>
     <h3>How will you answer?</h3>
     <div class="seg" role="group">${[['type','Type it'],['aloud','Spell out loud, check myself'],['mic','Spell out loud, app listens']].map(([k,l])=>`<button data-act="pOpt" data-o="pMode" data-v="${k}" aria-pressed="${st.pMode===k}" ${k==='mic'&&!canListen?'disabled':''}>${l}</button>`).join('')}</div>
     <p class="muted" style="font-size:.95rem">${{type:'Type the spelling. If it is wrong, you will see the letters you missed and type it once more correctly.', aloud:'Say the word, spell it out loud, say it again. Then tap to see the answer and mark yourself honestly.', mic:'Tap "Start spelling", then say the word, spell it, and say it again. The app checks the spelling and the Say–SPELL–Say procedure.'}[st.pMode]}</p>
@@ -1558,16 +1601,19 @@ function vPracticeSetup(){
   </section>
   <div class="row"><button class="btn big" data-act="pStart">Start practice</button></div>`;
 }
+const firstLetter = w => plain(w.key)[0];
+const byLetters = (list, letters) => letters ? list.filter(w=>letters.includes(firstLetter(w))) : list;
+
 function startPractice(){
-  const p = prof(), st = S.settings, list = WORDS[p.grade].official;
+  const p = prof(), st = S.settings, list = byLetters(WORDS[p.grade].official, st.pLetters||'');
   let q;
   if(st.pSet==='tricky') q = shuffle(list.filter(w=>status(p,w.key)==='tricky'));
   else if(st.pSet==='smart'){
     const by = s => shuffle(list.filter(w=>status(p,w.key)===s));
     q = [...by('tricky'), ...by('learning'), ...by('new'), ...by('mastered')];
   } else q = shuffle(list);
-  q = q.slice(0, Number(st.pSize));
-  if(!q.length){ go('pSetup'); setTimeout(()=>alertNote('No tricky words yet. Pick another set.'),0); return; }
+  q = st.pSize==='all' ? q : q.slice(0, Number(st.pSize));
+  if(!q.length){ go('pSetup'); alertNote(st.pSet==='tricky' ? `No tricky words${st.pLetters?' for these letters':''} yet. Pick another set.` : 'No words for these letters.'); return; }
   P = {q, i:0, phase:'ask', mode:(st.pMode==='mic'&&!canListen)?'aloud':st.pMode, right:0, missed:[], attempt:''};
   go('practice');
   setTimeout(()=>sayWord(P.q[0].key), 250);
@@ -1600,13 +1646,14 @@ function vPractice(){
       <div class="row" style="justify-content:center"><button class="btn big" data-act="pRetype">Check</button><button class="link" data-act="pNext">Skip</button></div>
       <div id="retypemsg" class="muted" style="text-align:center"></div>`;
   } else if(P.mode==='mic'){
-    if(P.phase==='ask') body = `${P.msg?`<div class="note bad">${esc(P.msg)}</div>`:''}${listenPanel()}`;
+    if(P.phase==='ask') body = `${P.msg?`<div class="note bad">${esc(P.msg)}</div><div class="override"><button class="btn honey" data-act="pMicOverride">✓ Said it correctly</button><span class="muted">Use this if the listening made a mistake.</span></div>`:''}${listenPanel()}`;
     else {
       const ok = P.heard.letters && w.answers.includes(P.heard.letters);
       body = `<div class="center"><div class="big-result ${ok&&P.heard.procOk?'good':'bad'}">${ok?(P.heard.procOk?'Correct!':'Right spelling, check the procedure'):'Not quite'}</div>
         ${ok?tiles(w.key,'pop'):missMarks(w.key, P.heard.letters||'')}</div>
         ${heardHtml(P.heard, w)}
-        <div class="row" style="justify-content:center"><button class="btn big" data-act="pMicNext" id="nextbtn">Next word</button><button class="btn alt" data-act="pMicAgain">Spell it again</button>${ok?'':`<button class="link" data-act="pMicOverride">The app heard me wrong</button>`}</div>`;
+        <div class="row" style="justify-content:center"><button class="btn big" data-act="pMicNext" id="nextbtn">Next word</button><button class="btn alt" data-act="pMicAgain">Spell it again</button></div>
+        ${ok&&P.heard.procOk?'':`<div class="override"><button class="btn honey" data-act="pMicOverride">✓ Said it correctly</button><span class="muted">Use this if the listening made a mistake.</span></div>`}`;
     }
   } else {
     if(P.phase==='ask') body = `
@@ -1622,7 +1669,7 @@ function vPractice(){
 function pHeard(text, err){
   if(!P || view!=='practice') return;
   if(!text){ P.msg = micError(err); render(); return; }
-  P.msg = ''; P.heard = parseHeard(text); P.phase = 'heard'; render();
+  P.msg = ''; P.heard = parseHeard(text, P.q[P.i].answers); P.phase = 'heard'; render();
 }
 function pAdvance(){
   P.i++; P.phase='ask'; P.attempt=''; P.msg=''; P.heard=null;
@@ -1818,7 +1865,7 @@ function mHeard(text, err){
   if(!M || view!=='mock' || M.done) return;
   const over = !T || T.phase==='over';
   if(!text){ if(over) return mResult('none',''); M.msg = micError(err); render(); return; }
-  const r = parseHeard(text);
+  const r = parseHeard(text, curWord().answers);
   if(r.noLetters && !over){ M.msg = `I heard “${displayHeard(text, curWord().answers)}” but no separate letters. Tap "Start spelling" and spell with a short pause between letters.`; render(); return; }
   M.heard = r;
   const right = !!r.letters && curWord().answers.includes(r.letters);
@@ -1912,6 +1959,11 @@ document.addEventListener('click', e=>{
     case 'pSetup': go('pSetup'); break;
     case 'pOpt': S.settings[b.dataset.o]=b.dataset.v; save(); render(); break;
     case 'pStart': startPractice(); break;
+    case 'pLetter': {
+      const c=b.dataset.l, cur=S.settings.pLetters||'';
+      S.settings.pLetters = !c ? '' : cur.includes(c) ? cur.replace(c,'') : [...cur+c].sort().join('');
+      save(); render(); break;
+    }
     case 'pCheck': {
       const v=$('#spell').value; if(!norm(v)) return;
       const w=P.q[P.i]; P.attempt=norm(v);
