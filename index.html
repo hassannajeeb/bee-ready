@@ -1389,41 +1389,53 @@ function parseHeard(text, answers){
     procOk: before.length>0 && after.length>0 && !extra.length && !fillers.length && !restartNoSay};
 }
 let L = null;
+/* Each session keeps its own handlers, so a late event from an earlier word can't touch the current one. */
 function startListening(onDone){
   stopListening(true);
   if('speechSynthesis' in window) speechSynthesis.cancel();
   if(player) player.pause();
   const rec = new SR();
   rec.lang = S.settings.accent; rec.continuous = true; rec.interimResults = true;
-  L = {rec, fin:'', live:'', onDone, done:false, silence:null, error:null};
+  const sess = {rec, fin:'', live:'', onDone, done:false, silence:null, error:null, fallback:null};
+  L = sess;
   rec.onresult = e=>{
+    if(sess.done) return;
     let fin='', live='';
     for(let i=0;i<e.results.length;i++){ const r=e.results[i]; if(r.isFinal) fin+=r[0].transcript+' '; else live+=r[0].transcript+' '; }
-    L.fin=fin; L.live=live;
+    sess.fin=fin; sess.live=live;
     const h=$('#heard'); if(h) h.textContent=displayHeard((fin+live).trim(), listenAnswers());
-    clearTimeout(L.silence); L.silence=setTimeout(()=>{ try{rec.stop();}catch(e){} }, 4000);
+    clearTimeout(sess.silence); sess.silence=setTimeout(()=>stopListening(false), 4000);
   };
-  rec.onerror = e=>{ if(L) L.error=e.error; };
-  rec.onend = finishListening;
+  rec.onerror = e=>{ sess.error=e.error; };
+  rec.onend = ()=>finishListening(sess);
   try { rec.start(); } catch(e){ L=null; onDone('', 'start-failed'); return; }
   micUI(true);
 }
 function stopListening(discard){
-  if(!L) return;
-  if(discard){ L.done=true; clearTimeout(L.silence); try{L.rec.abort();}catch(e){} L=null; return; }
-  try{ L.rec.stop(); }catch(e){}
+  const sess = L;
+  if(!sess || sess.done) return;
+  clearTimeout(sess.silence);
+  if(discard){ sess.done=true; clearTimeout(sess.fallback); try{sess.rec.abort();}catch(e){} L=null; return; }
+  if(sess.fallback) return; // already stopping
+  micUI('stopping');
+  try{ sess.rec.stop(); }catch(e){}
+  // Some browsers (often Safari) never report that they stopped; finish anyway with what was heard.
+  sess.fallback = setTimeout(()=>{ try{sess.rec.abort();}catch(e){} finishListening(sess); }, 1500);
 }
-function finishListening(){
-  if(!L || L.done) return;
-  L.done=true; clearTimeout(L.silence);
-  const text=(L.fin+' '+L.live).trim(), cb=L.onDone, err=L.error;
-  L=null; micUI(false); cb(text, err);
+function finishListening(sess){
+  if(!sess || sess.done) return;
+  sess.done=true; clearTimeout(sess.silence); clearTimeout(sess.fallback);
+  if(L===sess) L=null;
+  micUI(false);
+  sess.onDone((sess.fin+' '+sess.live).trim(), sess.error);
 }
-function micUI(on){
+function micUI(state){
   const b=$('#micbtn'); if(!b) return;
-  b.classList.toggle('on', on);
-  b.innerHTML = on ? `${MIC}I'm done` : `${MIC}Start spelling`;
-  b.dataset.act = on ? 'micStop' : 'micStart';
+  const stopping = state==='stopping';
+  b.classList.toggle('on', state===true);
+  b.disabled = stopping;
+  b.innerHTML = stopping ? 'Checking…' : state ? `${MIC}I'm done` : `${MIC}Start spelling`;
+  b.dataset.act = state===true ? 'micStop' : 'micStart';
 }
 function micError(err){
   if(err==='not-allowed'||err==='service-not-allowed') return 'The microphone is blocked. Allow it for this page in the browser (the icon in the address bar). In Safari, also turn on Dictation in System Settings → Keyboard.';
