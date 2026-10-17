@@ -173,6 +173,31 @@ td .w{font-family:var(--f-letter);font-weight:700}
 .lt:disabled{opacity:.35;cursor:not-allowed}
 .override{display:flex;flex-direction:column;align-items:center;gap:6px;text-align:center;padding-top:6px;border-top:1px dashed var(--line)}
 .override .muted{font-size:.88rem}
+.vsteps{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:14px;counter-reset:vs}
+.vsteps li{display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;counter-increment:vs}
+.vsteps li>div{display:flex;flex-direction:column;flex:1;min-width:200px}
+.vsteps li>div::before{content:"Step " counter(vs);font-size:.75rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:700}
+.vsteps li.done>div::before{content:"Step " counter(vs) " ✓";color:var(--good)}
+.vgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(54px,1fr));gap:6px}
+.vcell{border:1.5px solid var(--line);border-radius:10px;padding:6px 0;display:flex;flex-direction:column;align-items:center;line-height:1.15}
+.vcell b{font-family:var(--f-letter);font-size:1.2rem}
+.vcell small{font-size:.72rem;color:var(--muted);font-variant-numeric:tabular-nums}
+.vcell.mid{background:var(--honey-soft);border-color:var(--honey)}
+.vcell.ok{background:var(--good-soft);border-color:var(--good)}
+.vcell.miss{background:var(--bad-soft);border-color:var(--bad)}
+.vbig{width:150px;height:170px;display:grid;place-items:center;background:var(--sunk);color:var(--muted);clip-path:polygon(50% 0,100% 25%,100% 75%,50% 100%,0 75%,0 25%);font-family:var(--f-letter);font-weight:700;font-size:4.5rem;transition:background .15s}
+.vbig.rec{background:var(--good);color:#fff}
+.vbig.saved{background:var(--honey);color:var(--honey-ink)}
+.vlast{min-height:1.8em}
+.who-now{display:inline-flex;align-items:center;gap:8px;font-weight:700}
+.who-now .hex{width:26px;height:30px;font-size:.95rem}
+.pick{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:12px}
+.who-card{display:flex;align-items:center;gap:14px;text-align:left;background:var(--surface);border:1.5px solid var(--line);border-radius:var(--r);padding:16px;transition:border-color .15s,transform .15s}
+.who-card:hover{border-color:var(--accent);transform:translateY(-2px)}
+.who-card .hex{flex:none;width:52px;height:60px;font-size:1.7rem}
+.who-txt{display:flex;flex-direction:column;gap:2px}
+.who-txt b{font-family:var(--f-display);font-size:1.25rem;font-weight:600}
+.who-txt small{color:var(--muted);font-size:.88rem}
 .credit{font-size:.82rem;color:var(--muted)}
 @media (prefers-reduced-motion: reduce){*{transition:none!important;animation:none!important}}
 @keyframes pop{0%{transform:scale(.6);opacity:0}100%{transform:scale(1);opacity:1}}
@@ -1201,14 +1226,11 @@ const WORDS = {
 /* ---------- State ---------- */
 const STORE = 'beeready-v1';
 function fresh(){
-  return {profiles:[
-    {id:'p3',name:'Grade 3 speller',grade:3,stats:{},mocks:[]},
-    {id:'p5',name:'Grade 5 speller',grade:5,stats:{},mocks:[]},
-  ], active:'p3', settings:{accent:'en-GB', rate:0.85, voice:'mw', pSet:'smart', pSize:10, pLetters:'', pMode:'type', mMode:'judge'}};
+  return {profiles:[], active:null, settings:{accent:'en-GB', rate:0.85, voice:'mw', pSet:'smart', pSize:10, pLetters:'', pMode:'type', mMode:'judge'}};
 }
 let S;
 try { S = JSON.parse(localStorage.getItem(STORE)); } catch(e){}
-if(!S || !Array.isArray(S.profiles) || !S.profiles.length) S = fresh();
+if(!S || !Array.isArray(S.profiles)) S = fresh();
 S.settings = Object.assign(fresh().settings, S.settings||{});
 function save(){ try{ localStorage.setItem(STORE, JSON.stringify(S)); }catch(e){} }
 const prof = () => S.profiles.find(p=>p.id===S.active) || S.profiles[0];
@@ -1490,19 +1512,47 @@ const MIC = `<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke=
 const SPEAKER = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path fill="currentColor" d="M11 5 6 9H2v6h4l5 4V5z"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/><path d="M19 5a10 10 0 0 1 0 14"/></svg>`;
 
 /* ---------- Router ---------- */
-let view = 'home';
+let view = 'start';   // every visit starts by choosing who is spelling
 let P = null; // practice session
 let M = null; // mock session
-function go(v){ view=v; stopTimer(); stopListening(true); render(); window.scrollTo(0,0); }
+function go(v){ if(view==='voice' && v!=='voice') voiceStop(); view=v; stopTimer(); stopListening(true); render(); window.scrollTo(0,0); }
 function render(){
+  if(!S.profiles.length && view!=='start') view = 'start';
   renderWho();
-  const fn = {home:vHome, pSetup:vPracticeSetup, practice:vPractice, pDone:vPracticeDone, mSetup:vMockSetup, mock:vMock, mRound:vMockRound, mFinal:vMockFinal, bank:vBank, speller:vSpeller}[view] || vHome;
+  const fn = {start:vStart, home:vHome, pSetup:vPracticeSetup, practice:vPractice, pDone:vPracticeDone, mSetup:vMockSetup, mock:vMock, mRound:vMockRound, mFinal:vMockFinal, bank:vBank, speller:vSpeller, voice:vVoice}[view] || vHome;
   $('#app').innerHTML = fn();
   const inp = $('#spell'); if(inp) inp.focus();
 }
 function renderWho(){
-  const busy = view==='practice' || view==='mock';
-  $('#who').innerHTML = S.profiles.map(p=>`<button class="chip" data-act="who" data-id="${p.id}" aria-pressed="${p.id===S.active}" ${busy?'disabled':''}>${esc(p.name)} · G${p.grade}</button>`).join('');
+  const busy = view==='practice' || view==='mock' || (view==='voice' && V.mode!=='menu' && V.mode!=='report');
+  const p = prof();
+  $('#who').innerHTML = view==='start' || !p ? '' :
+    `<span class="who-now"><span class="hex">${esc(initial(p))}</span>${esc(p.name)} · Grade ${p.grade}</span><button class="chip" data-act="switch" ${busy?'disabled':''}>Switch speller</button>`;
+}
+const initial = p => (p.name.trim()[0] || '?').toLowerCase();
+const GRADES = Object.keys(WORDS).map(Number);
+
+/* ---------- Start: who is spelling? ---------- */
+function vStart(){
+  const has = S.profiles.length;
+  return `
+  <section class="hero"><span class="eyebrow">Pakistan Spelling Bee 2026–27</span><h1>${has?'Who’s spelling today?':'Welcome to Bee Ready'}</h1>
+  ${has?'':'<p class="muted">Add your name and grade to start. Each speller keeps their own progress on this device.</p>'}</section>
+  ${has?`<section class="pick">${S.profiles.map(p=>{
+    const m = WORDS[p.grade].official.filter(w=>status(p,w.key)==='mastered').length;
+    return `<button class="who-card" data-act="pick" data-id="${p.id}"><span class="hex">${esc(initial(p))}</span><span class="who-txt"><b>${esc(p.name)}</b><small>Grade ${p.grade} · ${m} of ${WORDS[p.grade].official.length} words mastered</small></span></button>`;
+  }).join('')}</section>`:''}
+  <section class="panel">
+    <h3>${has?'New speller':'Your name and grade'}</h3>
+    <div class="row" style="align-items:flex-end">
+      <label class="f" for="newname" style="flex:1;min-width:180px">First name<input type="text" id="newname" maxlength="30" autocomplete="off" data-enter="addStart"></label>
+      <label class="f" for="newgrade">Grade<select id="newgrade">${GRADES.map(g=>`<option value="${g}">Grade ${g}</option>`).join('')}</select></label>
+      <button class="btn" data-act="addStart">Start</button>
+    </div>
+    <div id="newmsg" class="muted" style="font-size:.9rem"></div>
+    <p class="muted" style="font-size:.9rem">Word lists are available for Grades ${GRADES.join(' and ')}.</p>
+  </section>
+  ${has?`<div class="row"><button class="btn ghost" data-act="speller">Edit or remove spellers</button></div>`:''}`;
 }
 
 const backBar = () => `<div class="topnav"><button class="btn ghost back" data-act="home">← Home</button></div>`;
@@ -1539,6 +1589,7 @@ function vHome(){
     <button class="action" data-act="mSetup"><h3><span class="hex">m</span>Mock bee</h3><p>Rounds 1–3 with the 40-second timer, hidden words and real PSB scoring.</p></button>
     <button class="action" data-act="bank"><h3><span class="hex">w</span>Word bank</h3><p>Every word on the list. Tap one to hear it.</p></button>
   </section>
+  ${VOICE?`<button class="action" data-act="voice"><h3><span class="hex">v</span>Voice training</h3><p>${p.voice&&p.voice.test?`Letter test: ${p.voice.test.right} of ${p.voice.test.total} right. Record more or test again.`:p.voice&&p.voice.trainedAt?'Trained. Run the letter test to see how well it learned.':`Teach the app how ${esc(p.name)} says each letter, A to Z.`}</p></button>`:''}
   <section class="panel">
     <div class="row spread"><h3>Mock bee results</h3>${best!==null?`<span class="pill good">Best total ${best}</span>`:''}</div>
     ${p.mocks.length ? `<ul class="hist">${p.mocks.slice(-6).reverse().map(m=>`<li><span>${new Date(m.date).toLocaleDateString(undefined,{day:'numeric',month:'short'})} · ${m.mode==='judge'?'Judged':'Typed'}</span><span style="font-variant-numeric:tabular-nums">Rounds ${m.rounds.join(' / ')} · <b>Total ${m.total}</b> ${m.qualified?'<span class="pill good">Reached Round 3</span>':'<span class="pill">Stopped at Round 2</span>'}</span></li>`).join('')}</ul>`
@@ -1571,17 +1622,17 @@ function vHome(){
 
 /* ---------- Spellers ---------- */
 function vSpeller(){
-  return `${backBar()}
-  <section class="hero"><span class="eyebrow">Spellers</span><h1>Who is practising?</h1>
+  return `<div class="topnav"><button class="btn ghost back" data-act="switch">← Spellers</button></div>
+  <section class="hero"><span class="eyebrow">Spellers</span><h1>Edit spellers</h1>
   <p class="muted">Each speller keeps their own progress on this device.</p></section>
   ${S.profiles.map(p=>`
   <section class="panel">
     <div class="row" style="align-items:flex-end">
       <label class="f" for="n-${p.id}" style="flex:1;min-width:180px">Name<input type="text" id="n-${p.id}" value="${esc(p.name)}" maxlength="30"></label>
       <label class="f" for="g-${p.id}">Grade
-        <select id="g-${p.id}"><option value="3" ${p.grade===3?'selected':''}>Grade 3</option><option value="5" ${p.grade===5?'selected':''}>Grade 5</option></select></label>
+        <select id="g-${p.id}">${GRADES.map(g=>`<option value="${g}" ${p.grade===g?'selected':''}>Grade ${g}</option>`).join('')}</select></label>
       <button class="btn" data-act="saveSpeller" data-id="${p.id}">Save</button>
-      ${S.profiles.length>1?`<button class="btn ghost" data-act="delSpeller" data-id="${p.id}">Remove</button>`:''}
+      <button class="btn ghost" data-act="delSpeller" data-id="${p.id}">Remove</button>
     </div>
     <div id="msg-${p.id}" class="muted" style="font-size:.9rem"></div>
   </section>`).join('')}
@@ -1957,6 +2008,235 @@ function vMockFinal(){
   <div class="row"><button class="btn big" data-act="mSetup">New mock bee</button><button class="btn alt" data-act="home">Home</button></div>`;
 }
 
+/* ---------- Voice training (Mac build only) ----------
+   Learns how each speller says A–Z, using TensorFlow.js speech-commands transfer learning.
+   Samples and the trained model stay in this browser (IndexedDB); no audio is kept. */
+const VOICE = !!window.FEATURE_VOICE && !embedded && !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia);
+const AZ = 'abcdefghijklmnopqrstuvwxyz'.split('');
+const NOISE = '_background_noise_';
+const V_TARGET = 8, V_MIN = 3, V_EPOCHS = 40;
+const vName = p => 'beeready-' + p.id;
+let VX = null;   // library + base model, loaded once
+const VT = {};   // per speller: {t: transfer recogniser, trained}
+let V = {mode:'menu'};
+
+const idb = (()=>{
+  let dbp;
+  const open = () => dbp || (dbp = new Promise((ok, bad)=>{
+    const r = indexedDB.open('beeready-voice', 1);
+    r.onupgradeneeded = () => r.result.createObjectStore('kv');
+    r.onsuccess = () => ok(r.result); r.onerror = () => bad(r.error);
+  }));
+  const run = (mode, fn) => open().then(db=>new Promise((ok, bad)=>{
+    const tx = db.transaction('kv', mode), req = fn(tx.objectStore('kv'));
+    tx.oncomplete = () => ok(req && req.result); tx.onerror = () => bad(tx.error);
+  }));
+  return {get:k=>run('readonly', s=>s.get(k)), set:(k,v)=>run('readwrite', s=>s.put(v,k)), del:k=>run('readwrite', s=>s.delete(k))};
+})();
+const sleep = ms => new Promise(r=>setTimeout(r, ms));
+const loadScript = src => new Promise((ok, bad)=>{ const s=document.createElement('script'); s.src=src; s.onload=ok; s.onerror=()=>bad(new Error('Could not load '+src)); document.head.appendChild(s); });
+
+async function voiceFor(p){
+  if(!VX){
+    await loadScript('vendor/tf-3.21.0.min.js');
+    await loadScript('vendor/speech-commands-0.5.4.min.js');
+    const base = speechCommands.create('BROWSER_FFT', undefined,
+      new URL('vendor/speech-model/model.json', location.href).href,
+      new URL('vendor/speech-model/metadata.json', location.href).href);
+    await base.ensureModelLoaded();
+    VX = {base};
+  }
+  if(VT[p.id]) return VT[p.id];
+  const t = VX.base.createTransfer(vName(p));
+  const buf = await idb.get('examples-'+p.id).catch(()=>null);
+  if(buf) t.loadExamples(buf, false);   // the recogniser is new and empty; 'true' would fail trying to clear it
+  let trained = false;
+  if(p.voice && p.voice.trainedAt){ try { await t.load(); trained = true; } catch(e){} }
+  return VT[p.id] = {t, trained};
+}
+function vCounts(){ const vt=VT[V.pid]; return vt && !vt.t.isDatasetEmpty() ? vt.t.countExamples() : {}; }
+async function vSaveExamples(){ const vt=VT[V.pid]; if(vt && !vt.t.isDatasetEmpty()) await idb.set('examples-'+V.pid, vt.t.serializeExamples()); }
+function voiceStop(){
+  clearTimeout(V.timer); V.awaiting = false; V.paused = true;
+  if(V.listening){ V.listening = false; const vt=VT[V.pid]; if(vt && vt.t.isListening()) vt.t.stopListening().catch(()=>{}); }
+}
+function openVoice(){
+  const p = prof();
+  V = {mode:'menu', pid:p.id, ready:false, err:'', flash:''};
+  go('voice');
+  if(!VOICE) return;
+  voiceFor(p).then(()=>{ if(V.pid===p.id){ V.ready=true; render(); } })
+    .catch(e=>{ V.err = 'The voice tools could not start: ' + e.message; render(); });
+}
+function vError(e){
+  const m = String(e && e.message || e);
+  V.err = /Permission|NotAllowed|denied/i.test(m) ? 'The microphone is blocked. Allow it for this page (the icon in the address bar), then try again.' : 'Something went wrong: ' + m;
+  V.mode = 'menu'; render();
+}
+
+/* Recording: one prompt per letter, in random order. The tile turns green while recording (1.5 s). */
+function startRecord(letters){
+  V.mode='record'; V.queue=shuffle(letters); V.total=V.queue.length; V.done=0; V.state='ready'; V.paused=false; V.lastUid=null; V.err=''; V.flash='';
+  render(); recordLoop();
+}
+async function recordLoop(){
+  const t = VT[V.pid].t;
+  try {
+    while(V.mode==='record' && !V.paused && V.queue.length){
+      V.cur = V.queue.shift(); V.state = 'ready'; render();
+      await sleep(900);
+      if(V.mode!=='record' || V.paused){ V.queue.unshift(V.cur); break; }
+      while(V.collecting) await sleep(100);   // an earlier round may still be finishing its last letter
+      V.state = 'rec'; render();
+      V.collecting = true;
+      try { await t.collectExample(V.cur, {durationMultiplier:1.5}); } finally { V.collecting = false; }
+      const ex = t.getExamples(V.cur); V.lastUid = ex[ex.length-1].uid; V.lastLetter = V.cur; V.done++;
+      V.state = 'saved'; render();
+      await sleep(400);
+    }
+    await vSaveExamples();
+    if(V.mode==='record' && !V.queue.length){ V.mode='menu'; V.flash=`Saved ${V.done} recordings.`; render(); }
+  } catch(e){ vError(e); }
+}
+async function recordNoise(){
+  V.mode='noise'; V.sec=0; V.err=''; V.flash=''; render();
+  try {
+    await VT[V.pid].t.collectExample(NOISE, {durationSec:10, snippetDurationSec:1, onSnippet: async ()=>{ V.sec++; const el=$('#noisesec'); if(el) el.textContent = Math.max(0, 10-V.sec); }});
+    await vSaveExamples();
+    V.mode='menu'; V.flash='Background sound saved.'; render();
+  } catch(e){ vError(e); }
+}
+async function trainVoice(){
+  const vt = VT[V.pid], p = prof();
+  V.mode='train'; V.epoch=0; V.err=''; V.flash=''; render();
+  try {
+    await vt.t.train({epochs:V_EPOCHS, augmentByMixingNoiseRatio:0.5, callback:{onEpochEnd: async (ep)=>{
+      V.epoch = ep+1; const bar=$('#trainbar'); if(bar) bar.style.width = (V.epoch/V_EPOCHS*100)+'%';
+      const n=$('#trainnum'); if(n) n.textContent = V.epoch;
+    }}});
+    await vt.t.save();
+    vt.trained = true;
+    p.voice = Object.assign({}, p.voice, {trainedAt: Date.now()}); save();
+    V.mode='menu'; V.flash='Training finished. Now run the letter test to see how well it learned.'; render();
+  } catch(e){ vError(e); }
+}
+
+/* Letter test: the app shows each letter once; the child says it; the trained model guesses. */
+async function startTest(){
+  const vt = VT[V.pid], labels = vt.t.wordLabels();
+  V.mode='test'; V.prompts=shuffle(AZ); V.i=0; V.results=[]; V.last=null; V.paused=false; V.err=''; V.flash=''; render();
+  try {
+    await vt.t.listen(res=>{
+      if(!V.awaiting || performance.now() < V.acceptAt) return;
+      let bi=-1, bs=0;
+      labels.forEach((l,i)=>{ if(l!==NOISE && res.scores[i]>bs){ bs=res.scores[i]; bi=i; } });
+      if(bi>=0) testAnswer(labels[bi]);
+    }, {probabilityThreshold:0.6, overlapFactor:0.5, suppressionTimeMillis:700, invokeCallbackOnNoiseAndUnknown:false});
+    V.listening = true;
+    nextPrompt();
+  } catch(e){ vError(e); }
+}
+function nextPrompt(){
+  if(V.mode!=='test') return;
+  if(V.i>=V.prompts.length) return finishTest();
+  V.awaiting = true; V.acceptAt = performance.now()+250; render();
+  clearTimeout(V.timer); V.timer = setTimeout(()=>testAnswer(null), 4500);
+}
+function testAnswer(guess){
+  if(!V.awaiting) return;
+  V.awaiting = false; clearTimeout(V.timer);
+  const target = V.prompts[V.i];
+  V.results.push({target, guess}); V.last = {target, guess}; V.i++;
+  render(); setTimeout(nextPrompt, 800);
+}
+function finishTest(){
+  voiceStop();
+  const p = prof(), right = V.results.filter(r=>r.guess===r.target).length;
+  p.voice = Object.assign({}, p.voice, {test:{date:Date.now(), right, total:V.results.length, results:V.results}}); save();
+  V.mode='report'; render();
+}
+async function deleteVoice(){
+  const p = prof(), vt = VT[V.pid];
+  try {
+    if(vt && !vt.t.isDatasetEmpty()) vt.t.clearExamples();
+    if(vt) vt.trained = false;
+    await idb.del('examples-'+p.id);
+    if(p.voice && p.voice.trainedAt) await speechCommands.deleteSavedTransferModel(vName(p)).catch(()=>{});
+    p.voice = null; save();
+    V.mode='menu'; V.flash=`${p.name}'s voice data is deleted.`; render();
+  } catch(e){ vError(e); }
+}
+
+function vVoice(){
+  const p = prof(), head = `${backBar()}<section class="hero"><span class="eyebrow">Voice training · ${esc(p.name)}</span><h1>Teach the app your letters</h1></section>`;
+  if(!VOICE) return `${head}<section class="note">Voice training works in the Mac version, opened with “Start Bee Ready”.</section>`;
+  const err = V.err ? `<div class="note bad">${esc(V.err)}</div>` : '';
+  if(!V.ready) return `${head}${err}<section class="panel"><p class="muted">${V.err?'':'Loading the voice tools…'}</p></section>`;
+  const vt = VT[V.pid], c = vCounts();
+  if(V.mode==='record'){
+    const stateText = {ready:'Get ready…', rec:'Say it now!', saved:'Saved'}[V.state];
+    return `${backBar()}<section class="panel center">
+      <span class="eyebrow">Recording ${Math.min(V.done+1, V.total)} of ${V.total}</span>
+      <div class="meter" style="width:100%"><i style="width:${(V.done/V.total*100).toFixed(1)}%;background:var(--accent)"></i></div>
+      <div class="vbig ${V.state}"><span>${esc((V.cur||'').toUpperCase())}</span></div>
+      <div class="big-result ${V.state==='rec'?'good':''}">${V.paused?'Paused':stateText}</div>
+      <p class="muted">Say the letter once, clearly, when the tile turns green. Use your normal spelling voice.</p>
+      <div class="row" style="justify-content:center">
+        ${V.paused?`<button class="btn big" data-act="vResume">Continue</button>`:`<button class="btn alt" data-act="vPause">Pause</button>`}
+        ${V.lastUid && V.state!=='rec' ? `<button class="btn ghost" data-act="vRedo">Redo “${esc(V.lastLetter.toUpperCase())}”</button>` : ''}
+        <button class="btn ghost" data-act="vMenu">Stop and save</button>
+      </div></section>`;
+  }
+  if(V.mode==='noise') return `${backBar()}<section class="panel center">
+      <span class="eyebrow">Background sound</span><div class="secs" id="noisesec">10</div>
+      <p>Stay quiet for 10 seconds so the app learns what your room sounds like.</p></section>`;
+  if(V.mode==='train') return `${backBar()}<section class="panel center">
+      <span class="eyebrow">Training</span><h2>Learning ${esc(p.name)}'s letters</h2>
+      <div class="meter" style="width:100%"><i id="trainbar" style="width:${(V.epoch/V_EPOCHS*100).toFixed(1)}%;background:var(--accent)"></i></div>
+      <p class="muted">Pass <span id="trainnum">${V.epoch}</span> of ${V_EPOCHS}. This takes about a minute. Keep this tab open.</p></section>`;
+  if(V.mode==='test'){
+    const target = V.prompts[V.i], last = V.last;
+    return `${backBar()}<section class="panel center">
+      <span class="eyebrow">Letter test · ${Math.min(V.i+1, V.prompts.length)} of ${V.prompts.length}</span>
+      <div class="meter" style="width:100%"><i style="width:${(V.i/V.prompts.length*100).toFixed(1)}%;background:var(--accent)"></i></div>
+      <div class="vbig rec"><span>${esc((target||'').toUpperCase())}</span></div>
+      <p>Say this letter.</p>
+      <div class="vlast">${last?(last.guess===last.target?`<span class="pill good">Heard ${last.guess.toUpperCase()} ✓</span>`:`<span class="pill bad">${last.target.toUpperCase()}: ${last.guess?'heard '+last.guess.toUpperCase():'didn’t hear it'}</span>`):'&nbsp;'}</div>
+      <button class="btn ghost" data-act="vMenu">Stop the test</button></section>`;
+  }
+  if(V.mode==='report'){
+    const tst = p.voice && p.voice.test, wrong = tst.results.filter(r=>r.guess!==r.target);
+    const pct = Math.round(tst.right/tst.total*100);
+    return `${backBar()}<section class="hero"><span class="eyebrow">Letter test result · ${esc(p.name)}</span><h1>${tst.right} of ${tst.total} letters right (${pct}%)</h1>
+      <p class="muted">${pct>=90?'Very good. The app knows these letters well.':pct>=70?'Getting there. Record a few more samples of the missed letters, train again, and test again.':'The app needs more samples. Record another round of all letters, train again, and test again.'}</p></section>
+      <section class="panel"><div class="vgrid">${tst.results.slice().sort((a,b)=>a.target<b.target?-1:1).map(r=>`<div class="vcell ${r.guess===r.target?'ok':'miss'}"><b>${r.target.toUpperCase()}</b><small>${r.guess===r.target?'✓':r.guess?'heard '+r.guess.toUpperCase():'missed'}</small></div>`).join('')}</div></section>
+      <div class="row">${wrong.length?`<button class="btn honey" data-act="vRecordWeak">Record 3 more of each missed letter</button>`:''}<button class="btn alt" data-act="vTrain">Train again</button><button class="btn alt" data-act="vTest">Test again</button><button class="btn ghost" data-act="vMenu">Back</button></div>`;
+  }
+  // Menu
+  const letterCount = l => c[l]||0;
+  const full = AZ.filter(l=>letterCount(l)>=V_TARGET).length, enough = AZ.every(l=>letterCount(l)>=V_MIN);
+  const noise = (c[NOISE]||0) > 0, tst = p.voice && p.voice.test;
+  const canTrain = enough && noise;
+  return `${head}${err}${V.flash?`<div class="note good">${esc(V.flash)}</div>`:''}
+  <p class="muted">The app learns how ${esc(p.name)} says each letter, on this computer only. Use a quiet room and the microphone you'll practise with. Recordings are turned into voice patterns; no audio is kept.</p>
+  <section class="panel">
+    <ol class="vsteps">
+      <li class="${full===26?'done':''}"><div><b>Record the letters</b><span class="muted">${full} of 26 letters have ${V_TARGET} samples. Each round is about a minute.</span></div>
+        <button class="btn ${full===26?'alt':''}" data-act="vRecord">${Object.keys(c).length?'Record another round':'Start recording'}</button></li>
+      <li class="${noise?'done':''}"><div><b>Record 10 seconds of quiet</b><span class="muted">${noise?'Done.':'So the app can tell silence from letters.'}</span></div>
+        <button class="btn ${noise?'alt':''}" data-act="vNoise">${noise?'Record again':'Record quiet'}</button></li>
+      <li class="${vt.trained?'done':''}"><div><b>Train</b><span class="muted">${vt.trained?`Trained ${new Date(p.voice.trainedAt).toLocaleDateString(undefined,{day:'numeric',month:'short'})}. Train again after recording more.`:canTrain?'Ready to train.':`Needs at least ${V_MIN} samples of every letter and the quiet recording.`}</span></div>
+        <button class="btn" data-act="vTrain" ${canTrain?'':'disabled'}>Train</button></li>
+      <li class="${tst?'done':''}"><div><b>Letter test</b><span class="muted">${tst?`Last result: ${tst.right} of ${tst.total} right.`:'Say each letter once and see how many the app gets right.'}</span></div>
+        <button class="btn" data-act="vTest" ${vt.trained?'':'disabled'}>Test</button></li>
+    </ol>
+  </section>
+  <section class="panel"><div class="row spread"><h3>Samples per letter</h3><span class="muted">Goal: ${V_TARGET} each</span></div>
+    <div class="vgrid">${AZ.map(l=>{ const n=letterCount(l); return `<div class="vcell ${n>=V_TARGET?'ok':n>=V_MIN?'mid':''}"><b>${l.toUpperCase()}</b><small>${n}</small></div>`; }).join('')}</div>
+  </section>
+  <div class="row"><button class="btn ghost" data-act="vDelete">Delete ${esc(p.name)}'s voice data</button></div>`;
+}
+
 /* ---------- Events ---------- */
 document.addEventListener('click', e=>{
   const b = e.target.closest('[data-act]'); if(!b || b.disabled) return;
@@ -1964,6 +2244,16 @@ document.addEventListener('click', e=>{
   switch(a){
     case 'home': if(view==='mock'||view==='practice') return; go('home'); break;
     case 'who': S.active=b.dataset.id; save(); go('home'); break;
+    case 'switch': go('start'); break;
+    case 'pick': S.active=b.dataset.id; save(); go('home'); break;
+    case 'addStart': {
+      const name=($('#newname').value||'').trim().replace(/\s+/g,' ');
+      if(!name){ $('#newmsg').textContent='Type a name first.'; $('#newname').focus(); return; }
+      const same=S.profiles.find(x=>x.name.toLowerCase()===name.toLowerCase());
+      if(same){ $('#newmsg').textContent=`${same.name} is already here. Tap their card above, or use a different name.`; return; }
+      const id='p'+Date.now().toString(36);
+      S.profiles.push({id,name,grade:Number($('#newgrade').value),stats:{},mocks:[]}); S.active=id; save(); go('home'); break;
+    }
     case 'say': sayWord(b.dataset.text); break;
     case 'saySlow': sayWord(b.dataset.text, true); break;
     case 'tts': speak(b.dataset.text); break;
@@ -1977,15 +2267,30 @@ document.addEventListener('click', e=>{
     }
     case 'delSpeller': {
       if(b.dataset.confirm!=='1'){ b.dataset.confirm='1'; b.textContent='Tap again to remove'; return; }
-      S.profiles=S.profiles.filter(x=>x.id!==b.dataset.id);
-      if(!S.profiles.find(x=>x.id===S.active)) S.active=S.profiles[0].id;
-      save(); go('speller'); break;
+      const gone=b.dataset.id;
+      S.profiles=S.profiles.filter(x=>x.id!==gone);
+      if(!S.profiles.find(x=>x.id===S.active)) S.active=S.profiles.length?S.profiles[0].id:null;
+      save(); idb.del('examples-'+gone).catch(()=>{});   // their voice-training samples, if any
+      go(S.profiles.length?'speller':'start'); break;
     }
     case 'addSpeller': {
       const id='p'+Date.now().toString(36);
       S.profiles.push({id,name:'New speller',grade:3,stats:{},mocks:[]}); save(); go('speller'); break;
     }
     case 'bank': go('bank'); break;
+    case 'voice': openVoice(); break;
+    case 'vRecord': { const c=vCounts(); startRecord(AZ.filter(l=>(c[l]||0)<V_TARGET).length ? AZ.filter(l=>(c[l]||0)<V_TARGET) : AZ); break; }
+    case 'vRecordWeak': { const w=[...new Set(prof().voice.test.results.filter(r=>r.guess!==r.target).map(r=>r.target))]; startRecord([...w,...w,...w]); break; }
+    case 'vPause': V.paused=true; render(); break;
+    case 'vResume': V.paused=false; render(); recordLoop(); break;
+    case 'vRedo': { const t=VT[V.pid].t; if(V.lastUid && V.state!=='rec'){ t.removeExample(V.lastUid); V.queue.unshift(V.lastLetter); V.done--; V.lastUid=null; render(); } break; }
+    case 'vMenu': voiceStop(); vSaveExamples().catch(()=>{}); V.mode='menu'; V.flash=''; render(); break;
+    case 'vNoise': recordNoise(); break;
+    case 'vTrain': trainVoice(); break;
+    case 'vTest': startTest(); break;
+    case 'vDelete':
+      if(b.dataset.confirm!=='1'){ b.dataset.confirm='1'; b.textContent='Tap again to delete'; return; }
+      deleteVoice(); break;
     case 'bankFilter': bankFilter=b.dataset.k; render(); break;
     case 'pSetup': go('pSetup'); break;
     case 'pOpt': S.settings[b.dataset.o]=b.dataset.v; save(); render(); break;
