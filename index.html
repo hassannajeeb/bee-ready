@@ -1389,6 +1389,9 @@ function parseHeard(text, answers){
     procOk: before.length>0 && after.length>0 && !extra.length && !fillers.length && !restartNoSay};
 }
 let L = null;
+// iPhone and iPad browsers all use Safari's engine: it keeps listening through pauses on its own, and
+// restarting the microphone there can bring up the permission prompt again.
+const IOS = /iP(hone|ad|od)/.test(navigator.userAgent) || (navigator.platform==='MacIntel' && navigator.maxTouchPoints>1);
 /* Each session keeps its own handlers, so a late event from an earlier word can't touch the current one. */
 function startListening(onDone){
   stopListening(true);
@@ -1417,7 +1420,7 @@ function startListening(onDone){
     if(sess.done) return;
     // Chrome on Android stops after each pause even when asked to keep listening. Start again and keep
     // what was heard, until "I'm done", 4 s of silence, an error, or 40 s in total.
-    if(!sess.stopping && !sess.error && Date.now()-sess.began < 40000){
+    if(!IOS && !sess.stopping && !sess.error && Date.now()-sess.began < 40000){
       sess.prior = (sess.fin+' '+sess.live).trim(); sess.fin = sess.prior; sess.live = '';
       try{ rec.start(); return; }catch(e){}
     }
