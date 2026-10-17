@@ -1396,18 +1396,33 @@ function startListening(onDone){
   if(player) player.pause();
   const rec = new SR();
   rec.lang = S.settings.accent; rec.continuous = true; rec.interimResults = true;
-  const sess = {rec, fin:'', live:'', onDone, done:false, silence:null, error:null, fallback:null};
+  const sess = {rec, prior:'', fin:'', live:'', onDone, done:false, stopping:false, began:Date.now(), silence:null, error:null, fallback:null};
   L = sess;
   rec.onresult = e=>{
     if(sess.done) return;
+    // Chrome on Android can resend everything heard so far as one longer result; keep the longer one instead of doubling it.
     let fin='', live='';
-    for(let i=0;i<e.results.length;i++){ const r=e.results[i]; if(r.isFinal) fin+=r[0].transcript+' '; else live+=r[0].transcript+' '; }
-    sess.fin=fin; sess.live=live;
+    for(let i=0;i<e.results.length;i++){
+      const r=e.results[i], t=r[0].transcript.trim();
+      if(!t) continue;
+      if(!r.isFinal){ live=(live+' '+t).trim(); continue; }
+      fin = fin && t.length>fin.length && t.toLowerCase().startsWith(fin.toLowerCase()) ? t : (fin+' '+t).trim();
+    }
+    sess.fin=(sess.prior+' '+fin).trim(); sess.live=live;
     const h=$('#heard'); if(h) h.textContent=displayHeard((fin+live).trim(), listenAnswers());
     clearTimeout(sess.silence); sess.silence=setTimeout(()=>stopListening(false), 4000);
   };
   rec.onerror = e=>{ sess.error=e.error; };
-  rec.onend = ()=>finishListening(sess);
+  rec.onend = ()=>{
+    if(sess.done) return;
+    // Chrome on Android stops after each pause even when asked to keep listening. Start again and keep
+    // what was heard, until "I'm done", 4 s of silence, an error, or 40 s in total.
+    if(!sess.stopping && !sess.error && Date.now()-sess.began < 40000){
+      sess.prior = (sess.fin+' '+sess.live).trim(); sess.fin = sess.prior; sess.live = '';
+      try{ rec.start(); return; }catch(e){}
+    }
+    finishListening(sess);
+  };
   try { rec.start(); } catch(e){ L=null; onDone('', 'start-failed'); return; }
   micUI(true);
 }
@@ -1416,7 +1431,8 @@ function stopListening(discard){
   if(!sess || sess.done) return;
   clearTimeout(sess.silence);
   if(discard){ sess.done=true; clearTimeout(sess.fallback); try{sess.rec.abort();}catch(e){} L=null; return; }
-  if(sess.fallback) return; // already stopping
+  if(sess.stopping) return;
+  sess.stopping = true;
   micUI('stopping');
   try{ sess.rec.stop(); }catch(e){}
   // Some browsers (often Safari) never report that they stopped; finish anyway with what was heard.
