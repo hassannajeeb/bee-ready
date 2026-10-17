@@ -1341,11 +1341,40 @@ const canListen = !!SR && !embedded;
 const LETTER = {a:'a',ay:'a',eh:'a',b:'b',be:'b',bee:'b',c:'c',see:'c',sea:'c',si:'c',cee:'c',d:'d',dee:'d',e:'e',f:'f',ef:'f',eff:'f',g:'g',gee:'g',ji:'g',h:'h',aitch:'h',haitch:'h',i:'i',eye:'i',aye:'i',j:'j',jay:'j',k:'k',kay:'k',l:'l',el:'l',ell:'l',m:'m',em:'m',n:'n',en:'n',o:'o',oh:'o',owe:'o',p:'p',pee:'p',pea:'p',q:'q',queue:'q',cue:'q',r:'r',are:'r',ar:'r',s:'s',es:'s',ess:'s',t:'t',tea:'t',tee:'t',u:'u',you:'u',yu:'u',v:'v',vee:'v',w:'w',x:'x',ex:'x',y:'y',why:'y',wye:'y',z:'z',zed:'z',zee:'z',hyphen:'-',dash:'-'};
 const FILLERS = new Set(['um','umm','uh','uhh','uhm','ah','ahh','er','erm','hmm','mm']);
 /* Turn "Bridge B R I D G E Bridge" into a spelling plus Say–SPELL–Say checks. */
-function heardItems(text){
-  const toks = [];
+const SAID_WORD = '\u0001word';   // stands for the spoken word, however the engine wrote it
+function editDistance(a, b){
+  const d = Array.from({length:a.length+1}, (_,i)=>[i, ...new Array(b.length).fill(0)]);
+  for(let j=1;j<=b.length;j++) d[0][j]=j;
+  for(let i=1;i<=a.length;i++) for(let j=1;j<=b.length;j++)
+    d[i][j] = Math.min(d[i-1][j]+1, d[i][j-1]+1, d[i-1][j-1]+(a[i-1]===b[j-1]?0:1));
+  return d[a.length][b.length];
+}
+/* The engine may write the word in pieces ("honey bee", "sci fi", "pea nut"), and a piece can sound
+   like a letter ("bee" = B). Join up to 3 pieces that spell the word (one slip allowed in longer words)
+   into one spoken word. Pieces must include a real word and no single letters, so spelled letters
+   never join it. */
+function joinSaidWord(toks, answers){
+  const targets = (answers||[]).map(plain).filter(Boolean);
+  if(!targets.length) return toks;
+  const isWord = t => plain(t).length>=3 && !LETTER[t];
+  const matches = s => targets.some(a => s===a || (a.length>=6 && Math.abs(s.length-a.length)<=1 && editDistance(s,a)<=1));
+  const out = [];
+  for(let i=0;i<toks.length;){
+    let n = 0;
+    for(let k=Math.min(3, toks.length-i); k>=1; k--){
+      const piece = toks.slice(i, i+k);
+      if(piece.some(isWord) && !piece.some(t=>plain(t).length===1) && matches(piece.map(plain).join(''))){ n = k; break; }
+    }
+    if(n){ out.push(SAID_WORD); i += n; } else { out.push(toks[i]); i++; }
+  }
+  return out;
+}
+function heardItems(text, answers){
+  let toks = [];
   text.toLowerCase().replace(/[.,!?;:"“”]/g,' ').split(/\s+/).filter(Boolean).forEach(t=>{
     if(/^([a-z]-)+[a-z]$/.test(t)) toks.push(...t.split('-')); else toks.push(t.replace(/['’]s$/,''));
   });
+  toks = joinSaidWord(toks, answers);
   const items = [];
   for(let i=0;i<toks.length;i++){
     const t = toks[i];
@@ -1361,12 +1390,13 @@ function heardItems(text){
 }
 /* What to show on screen: letters only, never the spoken word (it would give the spelling away). */
 function displayHeard(text, answers){
-  const items = heardItems(text);
+  const items = heardItems(text, answers);
   const idx = items.map((x,i)=>x.l?i:-1).filter(i=>i>=0);
   const fi = idx.length ? idx[0] : Infinity, li = idx.length ? idx[idx.length-1] : -1;
   return items.map((x,i)=>{
     if(x.l) return x.l.toUpperCase().split('').join(' ');
     if(x.filler) return x.t;
+    if(x.t===SAID_WORD) return '(word)';
     if(i>fi && i<li){ const m = maskWord(x.t, answers); return m.includes('_____') ? '(word)' : m; }
     return '(word)';
   }).join(' ').replace(/(\(word\) )+\(word\)/g, '(word)');
@@ -1375,7 +1405,7 @@ const listenAnswers = () => view==='mock' ? curWord().answers : P.q[P.i].answers
 /* Procedural Rule 10: a speller may restart before saying the last letter, but must
    Say–SPELL–Say again; once the whole word is spelled, it cannot be corrected. */
 function parseHeard(text, answers){
-  const items = heardItems(text);
+  const items = heardItems(text, answers);
   const idx = items.map((x,i)=>x.l?i:-1).filter(i=>i>=0);
   if(idx.length<2) return {text, letters:'', noLetters:true};
   const fi = idx[0], li = idx[idx.length-1];
